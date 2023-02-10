@@ -242,7 +242,7 @@ class ObjCSourceFileGenerator(FileGenerator):
         out = []
         nums = []
 
-        for _ in xrange(function_count):
+        for _ in range(function_count):
             num = seed()
             text = objc_source_func_template.format(num, var_name)
             nums.append(num)
@@ -254,7 +254,7 @@ class ObjCSourceFileGenerator(FileGenerator):
         out = []
         class_nums = {}
 
-        for _ in xrange(class_count):
+        for _ in range(class_count):
             num = seed()
             func_out, func_nums = self.gen_func(func_per_class_count, "x")
             func_call_out = get_import_func_calls(self.language(), import_list, indent=4)
@@ -298,7 +298,7 @@ class SwiftFileGenerator(FileGenerator):
         out = []
         nums = []
 
-        for _ in xrange(function_count):
+        for _ in range(function_count):
             num = seed()
             text = swift_func_template.format(num, var_name)
             indented_text = '\n'.join(" " * indent + line for line in text.splitlines())
@@ -324,7 +324,7 @@ class SwiftFileGenerator(FileGenerator):
         out = []
         class_nums = {}
 
-        for _ in xrange(class_count):
+        for _ in range(class_count):
             num = seed()
             swift_only_func_out, swift_only_func_nums = self.gen_func(func_per_class_count, "x", indent=4)
             swift_objc_friendly_func_out, swift_objc_friendly_func_nums = self.gen_objc_friendly_func(indent=4)

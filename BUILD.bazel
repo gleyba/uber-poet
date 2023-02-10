@@ -1,0 +1,11 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
+exports_files([ 
+    "requirements.txt",
+])
+
+py_binary(
+    name = "genproj",
+    srcs = [ "genproj.py" ],
+    deps = [ "//uberpoet" ],
+)

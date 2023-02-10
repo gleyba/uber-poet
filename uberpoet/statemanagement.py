@@ -156,10 +156,10 @@ class XcodeVersion(object):
         raw_versions is a {(version_str, build_str): xcode_path_str} dictionary.
         """
 
-        versions = {XcodeVersion(raw_version, build): path for (raw_version, build), path in raw_versions.iteritems()}
+        versions = {XcodeVersion(raw_version, build): path for (raw_version, build), path in raw_versions.items()}
 
         major_seperated = {}
-        for version, path in versions.iteritems():
+        for version, path in versions.items():
             subset = major_seperated.get(version.major, {})
             subset[version] = path
             major_seperated[version.major] = subset

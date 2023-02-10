@@ -133,7 +133,7 @@ class CocoaPodsProjectGenerator(object):
 
         self.copy_resource("Info.plist", join(app_module_dir, "Info.plist"))
 
-        for name, text in app_files.iteritems():
+        for name, text in app_files.items():
             self.write_file(join(app_module_dir, name), text)
 
         if loc_json_file_path:
@@ -189,7 +189,7 @@ class CocoaPodsProjectGenerator(object):
                     "Lines of code count is too small for the module {} to fit one file, increase it.".format(
                         module_node.name))
             files = {
-                "File{}.swift".format(i): self.swift_gen.gen_file(3, 3, deps_from_index) for i in xrange(file_count)
+                "File{}.swift".format(i): self.swift_gen.gen_file(3, 3, deps_from_index) for i in range(file_count)
             }
         elif language == Language.OBJC:
             file_count = (max(self.objc_file_size_loc, loc_per_unit) * module_node.code_units) / self.objc_file_size_loc
@@ -198,7 +198,7 @@ class CocoaPodsProjectGenerator(object):
                     "Lines of code count is too small for the module {} to fit one file, increase it.".format(
                         module_node.name))
             files = {}
-            for i in xrange(file_count):
+            for i in range(file_count):
                 objc_source_file = self.objc_source_gen.gen_file(
                     3, 3, import_list=deps_from_index + ['File{}.h'.format(i)])
                 files["File{}.m".format(i)] = objc_source_file
@@ -215,7 +215,7 @@ class CocoaPodsProjectGenerator(object):
         self.write_file(pod_path, pod_text)
 
         # Write Swift Files
-        for file_name, file_obj in files.iteritems():
+        for file_name, file_obj in files.items():
             file_path = join(files_dir_path, file_name)
             self.write_file(file_path, file_obj.text)
             file_obj.text = ""  # Save memory after write

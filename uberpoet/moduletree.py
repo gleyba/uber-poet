@@ -79,7 +79,7 @@ class ModuleNode(object):
         def node(f_layer, f_node):
             return ModuleNode('MockLib{}_{}'.format(f_layer, f_node), ModuleNode.LIBRARY)
 
-        layers = [[node(l, n) for n in xrange(nodes_per_layer)] for l in xrange(layer_count)]
+        layers = [[node(l, n) for n in range(nodes_per_layer)] for l in range(layer_count)]
         app_node = ModuleNode('App', ModuleNode.APP, layers[0])
 
         node_graph = {}
@@ -101,15 +101,15 @@ class ModuleNode(object):
     def gen_flat_graph(module_count):
         """Generates a module dependency graph that depends on `module_count`
         libraries that don't depend on anything"""
-        libraries = [ModuleNode('MockLib{}'.format(i), ModuleNode.LIBRARY) for i in xrange(module_count)]
+        libraries = [ModuleNode('MockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(module_count)]
         app_node = ModuleNode('App', ModuleNode.APP, libraries)
 
         return app_node, (libraries + [app_node])
 
     @staticmethod
     def gen_flat_big_small_graph(big_mod_count, small_mod_count):
-        big_libs = [ModuleNode('BigMockLib{}'.format(i), ModuleNode.LIBRARY) for i in xrange(big_mod_count)]
-        small_libs = [ModuleNode('SmallMockLib{}'.format(i), ModuleNode.LIBRARY) for i in xrange(small_mod_count)]
+        big_libs = [ModuleNode('BigMockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(big_mod_count)]
+        small_libs = [ModuleNode('SmallMockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(small_mod_count)]
         app_node = ModuleNode('App', ModuleNode.APP, big_libs + small_libs)
 
         for l in big_libs:
@@ -119,7 +119,7 @@ class ModuleNode(object):
 
     @staticmethod
     def gen_layered_big_small_graph(big_mod_count, small_mod_count):
-        big_libs = [ModuleNode('AppMockLib{}'.format(i), ModuleNode.LIBRARY) for i in xrange(big_mod_count)]
+        big_libs = [ModuleNode('AppMockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(big_mod_count)]
         app_node = ModuleNode('App', ModuleNode.APP, big_libs)
 
         layer_count = 3

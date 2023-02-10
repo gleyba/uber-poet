@@ -114,7 +114,7 @@ class TestSettingsState(unittest.TestCase):
 
         write_file(conf_path, config_content)
 
-        for _ in xrange(4):
+        for _ in range(4):
             s.save_buckconfig_local()
             self.assertTrue(os.path.isfile(bak_conf_path))
             self.assertEqual(read_file(bak_conf_path), config_content)

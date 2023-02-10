@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-import ConfigParser
+import configparser
 import json
 import logging
 import os
@@ -164,7 +164,7 @@ def del_old_output_dir(output_directory):
 
 def make_custom_buckconfig_local(buckconfig_path):
     logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.add_section('project')
     config.set('project', 'ide_force_kill', 'never')
     config.add_section('parser')

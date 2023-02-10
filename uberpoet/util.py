@@ -37,14 +37,13 @@ def seed():
 def first_in_dict(d):
     """Grabs the value returned by the first value in d.keys()"""
     if len(d) > 0:
-        k = d.keys()[0]
-        return d[k]
+        return d[first_key(d)]
     return None
 
 
 def first_key(dictionary_var):
     """dictionary_var.keys()[0]"""
-    return dictionary_var.keys()[0]
+    return next(iter(dictionary_var))
 
 
 def makedir(path):

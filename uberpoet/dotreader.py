@@ -165,7 +165,7 @@ class DotFileReader(object):
         # type: (Dict[str, List[str]]) -> Dict[str, List[str]]
         """Converts a outgoing edge map into it's inverse, a {destination:[origins]} incoming edge map."""
         incoming = defaultdict(list)
-        for node, outgoing in dep_map.iteritems():
+        for node, outgoing in dep_map.items():
             for out in outgoing:
                 incoming[out] += [node]
 
@@ -201,7 +201,7 @@ class DotFileReader(object):
         incoming = self.incoming_edge_map_from_dep_map(dep_map)
         # A node with no incoming edges and some outgoing edges is a root in a DAG
         # Nodes with no edges are not really part of a graph, so we ignore them
-        return [node for node, incoming_edges in incoming.iteritems() if not incoming_edges and dep_map[node]]
+        return [node for node, incoming_edges in incoming.items() if not incoming_edges and dep_map[node]]
 
     def identical_names(self, edges):
         # type: (List[List[str]]) -> Dict[str,int]
@@ -212,7 +212,7 @@ class DotFileReader(object):
             name = self.extract_buck_target(k)
             name_count[name] = name_count.get(name, 0) + 1
 
-        name_count = {key: value for key, value in name_count.iteritems() if value > 1}
+        name_count = {key: value for key, value in name_count.items() if value > 1}
         return name_count
 
     def biggest_root_name(self, dep_map):
@@ -257,7 +257,7 @@ class DotFileReader(object):
         app_node = mod_map[root_node_name]
         app_node.node_type = ModuleNode.APP
 
-        for name, deps in dep_map.iteritems():
+        for name, deps in dep_map.items():
             new_deps = []
             for dep_name in deps:
                 mod = mod_map.get(dep_name, None)

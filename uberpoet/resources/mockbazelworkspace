@@ -51,9 +51,9 @@ load("//tools/rules:repository_rules.bzl", "github_repo")
 github_repo(
     name = "build_bazel_rules_ios",
     project = "bazel-ios",
-    ref = "b439882984e3e756f8a54a589b6aa3e7071bb502",
+    ref = "ea40a7b13dd1a29a454de2268a3799a65907501a",
     repo = "rules_ios",
-    sha256 = "5615afd1e20cb33cb26a57c6dc3a0cc586d4571480ec0b24377c9b781337d6de",
+    sha256 = "68cf4870875f077a30f0fdec732c38f8f6dce31aa9c37a4ae82750810844ed4c",
 )
 
 load(
@@ -90,6 +90,14 @@ load(
 )
 
 apple_support_dependencies()
+
+http_archive(
+    name = "com_google_protobuf",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.14.0.zip"],
+    sha256 = "bf0e5070b4b99240183b29df78155eee335885e53a8af8683964579c214ad301",
+    strip_prefix = "protobuf-3.14.0",
+    type = "zip",
+)
 
 load(
     "@com_google_protobuf//:protobuf_deps.bzl",
