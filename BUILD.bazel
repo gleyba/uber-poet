@@ -1,4 +1,5 @@
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@aspect_rules_lint//format:defs.bzl", "format_multirun")
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
 
 exports_files([ 
     "requirements.txt",
@@ -8,4 +9,9 @@ py_binary(
     name = "genproj",
     srcs = [ "genproj.py" ],
     deps = [ "//uberpoet" ],
+)
+
+format_multirun(
+    name = "format",
+    python = "@aspect_rules_lint//format:ruff",
 )

@@ -26,58 +26,60 @@ from .util import pad_list
 
 
 class SettingsState(object):
-
     def __init__(self, git_root):
         self.git_root = git_root
         self.have_backed_up = False
-        self.local_path = join(self.git_root, '.buckconfig.local')
-        self.backup_path = join(self.git_root, '.buckconfig.local.bak')
+        self.local_path = join(self.git_root, ".buckconfig.local")
+        self.backup_path = join(self.git_root, ".buckconfig.local.bak")
         self.select_path = None
 
     def save_buckconfig_local(self):
         if os.path.exists(self.backup_path):
             os.remove(self.backup_path)
         if os.path.exists(self.local_path):
-            logging.info('Backing up .buckconfig.local to .buckconfig.local.bak')
+            logging.info("Backing up .buckconfig.local to .buckconfig.local.bak")
             shutil.copy2(self.local_path, self.backup_path)
             self.have_backed_up = True
         else:
-            logging.info('No .buckconfig.local to back up, skipping')
+            logging.info("No .buckconfig.local to back up, skipping")
 
     def restore_buckconfig_local(self):
         if self.have_backed_up:
-            logging.info('Restoring .buckconfig.local')
+            logging.info("Restoring .buckconfig.local")
             os.remove(self.local_path)
             shutil.copy2(self.backup_path, self.local_path)
             os.remove(self.backup_path)
             self.have_backed_up = False
 
     def save_xcode_select(self):
-        self.select_path = subprocess.check_output(['xcode-select', '-p']).rstrip()
+        self.select_path = subprocess.check_output(["xcode-select", "-p"]).rstrip()
 
     def restore_xcode_select(self):
         if self.select_path:
-            logging.info('Restoring xcode-select path to %s', self.select_path)
-            subprocess.check_call(['sudo', 'xcode-select', '-s', self.select_path])
+            logging.info("Restoring xcode-select path to %s", self.select_path)
+            subprocess.check_call(["sudo", "xcode-select", "-s", self.select_path])
 
 
 class XcodeManager(object):
-
     @staticmethod
-    def get_xcode_dirs(containing_dir='/Applications'):
+    def get_xcode_dirs(containing_dir="/Applications"):
         items = os.listdir(containing_dir)
-        return [join(containing_dir, d) for d in items if 'xcode' in d.lower() and d.endswith('app')]
+        return [
+            join(containing_dir, d)
+            for d in items
+            if "xcode" in d.lower() and d.endswith("app")
+        ]
 
     @staticmethod
     def get_current_xcode_version():
-        version_out = subprocess.check_output(['xcodebuild', '-version']).splitlines()
-        version_num = version_out[0].split(' ')[1]
-        build_id = version_out[1].split(' ')[2]
+        version_out = subprocess.check_output(["xcodebuild", "-version"]).splitlines()
+        version_num = version_out[0].split(" ")[1]
+        build_id = version_out[1].split(" ")[2]
         return version_num, build_id
 
     @staticmethod
     def switch_xcode_version(xcode_path):
-        subprocess.check_call(['sudo', 'xcode-select', '-s', xcode_path])
+        subprocess.check_call(["sudo", "xcode-select", "-s", xcode_path])
 
     def xcode_version_of_path(self, path):
         try:
@@ -87,7 +89,7 @@ class XcodeManager(object):
         return self.get_current_xcode_version()
 
     def discover_xcode_versions(self):
-        settings = SettingsState('/')
+        settings = SettingsState("/")
         settings.save_xcode_select()
 
         candidates = self.get_xcode_dirs()
@@ -110,23 +112,25 @@ class XcodeManager(object):
         except Exception as e:
             sys.exit(str(e))
 
-        cache_dir = subprocess.check_output(['getconf', 'DARWIN_USER_CACHE_DIR']).rstrip()
-        user_dir = 'org.llvm.clang.{}'.format(username)
-        return os.path.join(cache_dir, user_dir, 'ModuleCache')
+        cache_dir = subprocess.check_output(
+            ["getconf", "DARWIN_USER_CACHE_DIR"]
+        ).rstrip()
+        user_dir = "org.llvm.clang.{}".format(username)
+        return os.path.join(cache_dir, user_dir, "ModuleCache")
 
     def clean_caches(self):
-        logging.info('Cleaning Xcode caches...')
+        logging.info("Cleaning Xcode caches...")
 
         directories_to_delete = (
-            '~/Library/Caches/com.apple.dt.Xcode',
-            '~/Library/Developer/Xcode/DerivedData',
+            "~/Library/Caches/com.apple.dt.Xcode",
+            "~/Library/Developer/Xcode/DerivedData",
             self._get_global_module_cache_dir(),
         )
 
         for directory in directories_to_delete:
             full_path = os.path.expanduser(directory)
-            logging.info('Removing %s', full_path)
-            subprocess.check_call(['rm', '-fr', full_path])
+            logging.info("Removing %s", full_path)
+            subprocess.check_call(["rm", "-fr", full_path])
 
 
 class XcodeVersion(object):
@@ -139,7 +143,7 @@ class XcodeVersion(object):
 
     @staticmethod
     def numeric_version(raw):
-        return pad_list([int(x) for x in raw.split('.')], 3, 0)
+        return pad_list([int(x) for x in raw.split(".")], 3, 0)
 
     @property
     def major(self):
@@ -156,7 +160,10 @@ class XcodeVersion(object):
         raw_versions is a {(version_str, build_str): xcode_path_str} dictionary.
         """
 
-        versions = {XcodeVersion(raw_version, build): path for (raw_version, build), path in raw_versions.items()}
+        versions = {
+            XcodeVersion(raw_version, build): path
+            for (raw_version, build), path in raw_versions.items()
+        }
 
         major_seperated = {}
         for version, path in versions.items():

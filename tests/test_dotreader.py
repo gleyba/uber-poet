@@ -6,9 +6,10 @@ from uberpoet.moduletree import ModuleNode
 
 
 class TestDotReader(unittest.TestCase):
-
     def test_read_integration(self):
-        test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
+        test_fixture_path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "test_dot.gv"
+        )
         main_root_name = "DotReaderMainModule"
         dr = DotFileReader()
         root, nodes = dr.read_dot_file(test_fixture_path, main_root_name, is_debug=True)

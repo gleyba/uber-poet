@@ -1,4 +1,4 @@
-#  Copyright (c) 2021 Uber Technologies, Inc.
+#  Copyright (c) 2024 Kolobkov Tech Consulting LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+from __future__ import absolute_import
 
-from uberpoet.filegen import Language
-from uberpoet.loccalc import LOCCalculator
+from uberpoet.commandlineutil import Graph
 
 
-class TestLOCCalculator(unittest.TestCase):
-    def test_calculate_loc(self):
-        loc_calc = LOCCalculator()
-        self.assertEqual(loc_calc.calculate_loc("body", Language.SWIFT), 1)
-
-    def test_calculate_loc_multiple_lines(self):
-        loc_calc = LOCCalculator()
-        self.assertEqual(loc_calc.calculate_loc("body\ntext", Language.SWIFT), 2)
+def gen_java_project(args, graph: Graph) -> dict:
+    return {}

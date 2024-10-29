@@ -31,19 +31,27 @@ class LocFileReader(object):
 
     def read_loc_file(self, loc_file_path):
         # type: (str) -> NoReturn
-        with open(loc_file_path, 'r') as f:
+        with open(loc_file_path, "r") as f:
             self.cloc_mappings = json.load(f)
 
     def loc_for_module(self, mod_name):
         # type: (str) -> int
         if self.cloc_mappings is None:
-            raise ValueError("Unable to provide LOC for module {}, no data is loaded yet!".format(mod_name))
+            raise ValueError(
+                "Unable to provide LOC for module {}, no data is loaded yet!".format(
+                    mod_name
+                )
+            )
         module_info = self.cloc_mappings[mod_name]
         return module_info["loc"] if type(module_info) is dict else module_info
 
     def language_for_module(self, mod_name):
         # type: (str) -> str
         if self.cloc_mappings is None:
-            raise ValueError("Unable to provide LOC for module {}, no data is loaded yet!".format(mod_name))
+            raise ValueError(
+                "Unable to provide LOC for module {}, no data is loaded yet!".format(
+                    mod_name
+                )
+            )
         module_info = self.cloc_mappings[mod_name]
         return module_info["language"] if type(module_info) is dict else Language.SWIFT

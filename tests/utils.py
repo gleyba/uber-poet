@@ -20,17 +20,17 @@ def do_nothing(_):
 
 
 def integration_test(func):
-    if 'INTEGRATION' in os.environ:
+    if "INTEGRATION" in os.environ:
         return func
     else:
         return do_nothing
 
 
 def read_file(path):
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         return f.read()
 
 
 def write_file(path, text):
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(text)

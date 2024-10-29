@@ -49,7 +49,15 @@ class DotFileReader(object):
             # We are trying to simulate a non-test app build and ignore non-code targets such as asset
             # catalogs and schemes. Each module currently gets a static amount of code created for it,
             # so non-code modules will add code to the total when they shouldn't if we didn't filter them out.
-            modules_filter = ['test', 'scheme', 'assetcatalog', 'resources', 'fixture', 'needle', 'assets']
+            modules_filter = [
+                "test",
+                "scheme",
+                "assetcatalog",
+                "resources",
+                "fixture",
+                "needle",
+                "assets",
+            ]
         self.modules_filter = modules_filter
 
     def read_dot_file(self, path, root_node_name, is_debug=False):
@@ -63,24 +71,30 @@ class DotFileReader(object):
         :param is_debug: Enable this to dump some intermediate objects to help with debugging
         :return: The a tuple of the root node of the tree and a list of all nodes in the tree
         """
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             text = f.read()
 
         raw_edges = self.extract_edges(text)
         ident_names = self.identical_names(raw_edges)
         edges = self.clean_edge_names(raw_edges)
-        dep_map = self.make_dep_map_from_edges(edges)  # A dep_map is really an outgoing edge map
+        dep_map = self.make_dep_map_from_edges(
+            edges
+        )  # A dep_map is really an outgoing edge map
 
         # Debug dumps of dot reader state for debugging
         if is_debug:
             incoming_map = self.incoming_edge_map_from_dep_map(dep_map)
             anon_edge = self.anonymize_edge_names(edges, root_node_name)
-            self.debug_dump([edges, raw_edges, anon_edge], [dep_map, ident_names, incoming_map])
+            self.debug_dump(
+                [edges, raw_edges, anon_edge], [dep_map, ident_names, incoming_map]
+            )
 
         if ident_names:
             logging.error("Found identical buck target names in dot file: %s", path)
             logging.error(str(ident_names))
-            raise ValueError("Dot file contains buck target names that are identical, but have different paths")
+            raise ValueError(
+                "Dot file contains buck target names that are identical, but have different paths"
+            )
         else:
             root, nodes = self.mod_graph_from_dep_map(dep_map, root_node_name)
             logging.debug("%s %s total nodes: %d", root, root.deps, len(nodes))
@@ -97,10 +111,10 @@ class DotFileReader(object):
         """
 
         def edge(f_line):
-            return f_line[:-1].split('->')
+            return f_line[:-1].split("->")
 
         def name(f_part):
-            return str(f_part.strip().replace('"', ''))
+            return str(f_part.strip().replace('"', ""))
 
         def fil(f_line):
             lower = line.lower()
@@ -109,9 +123,13 @@ class DotFileReader(object):
                 if k in lower:
                     bad_word = True
                     break
-            return '->' in f_line and not bad_word
+            return "->" in f_line and not bad_word
 
-        return [[name(part) for part in edge(line)] for line in text.splitlines() if fil(line)]
+        return [
+            [name(part) for part in edge(line)]
+            for line in text.splitlines()
+            if fil(line)
+        ]
 
     @staticmethod
     def extract_buck_target(text):
@@ -145,7 +163,7 @@ class DotFileReader(object):
 
         def name(orig):
             if orig not in name_dict:
-                name_dict[orig] = 'DotReaderLib' + str(next(lib_index))
+                name_dict[orig] = "DotReaderLib" + str(next(lib_index))
             return name_dict[orig]
 
         return [[name(left), name(right)] for left, right in edges]
@@ -201,7 +219,11 @@ class DotFileReader(object):
         incoming = self.incoming_edge_map_from_dep_map(dep_map)
         # A node with no incoming edges and some outgoing edges is a root in a DAG
         # Nodes with no edges are not really part of a graph, so we ignore them
-        return [node for node, incoming_edges in incoming.items() if not incoming_edges and dep_map[node]]
+        return [
+            node
+            for node, incoming_edges in incoming.items()
+            if not incoming_edges and dep_map[node]
+        ]
 
     def identical_names(self, edges):
         # type: (List[List[str]]) -> Dict[str,int]
@@ -229,7 +251,9 @@ class DotFileReader(object):
         if len(roots) == 1:
             root_name = roots[0]
         elif len(roots) == 0:
-            raise ValueError("Cyclic dependency graph given (len(roots) == 0), aborting")
+            raise ValueError(
+                "Cyclic dependency graph given (len(roots) == 0), aborting"
+            )
         else:
             max_size = -1
             for r in roots:
@@ -273,14 +297,14 @@ class DotFileReader(object):
     def write_struct(struct, path):
         # type: (object, str) -> None
         """Writes generic python objects to disk (not deserializable)"""
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             pprint(struct, f)
 
     @staticmethod
     def write_edges(edges, path):
         # type: (List[List[str]], str) -> None
-        """"Writes edge lists to disk"""
-        with open(path, 'w') as f:
+        """ "Writes edge lists to disk"""
+        with open(path, "w") as f:
             for e in edges:
                 f.write('"{}" -> "{}";\n'.format(e[0], e[1]))
 
@@ -291,13 +315,13 @@ class DotFileReader(object):
         `edges` will dump dot files of a list of edge pairs. Type: [[(String,String)]]
         `structs` will dump a pretty print of python objects. Type: [PythonObject]
         """
-        dump_path = os.path.join(tempfile.gettempdir(), 'ub_dot_graph_dump')
-        logging.info('Dumping dotreader.py debug structures to %s', dump_path)
+        dump_path = os.path.join(tempfile.gettempdir(), "ub_dot_graph_dump")
+        logging.info("Dumping dotreader.py debug structures to %s", dump_path)
         makedir(dump_path)
 
         for i, edge in enumerate(edges):
-            path = os.path.join(dump_path, 'edges{}.gv'.format(i))
+            path = os.path.join(dump_path, "edges{}.gv".format(i))
             self.write_edges(edge, path)
         for i, struct in enumerate(structs):
-            path = os.path.join(dump_path, 'struct{}.py'.format(i))
+            path = os.path.join(dump_path, "struct{}.py".format(i))
             self.write_struct(struct, path)

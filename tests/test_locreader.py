@@ -6,16 +6,19 @@ from uberpoet.locreader import LocFileReader
 
 
 class TestLocReader(unittest.TestCase):
-
     def test_loc_for_module(self):
-        test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'loc_mappings.json')
+        test_fixture_path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "loc_mappings.json"
+        )
         lr = LocFileReader()
         lr.read_loc_file(test_fixture_path)
 
         self.assertEqual(419, lr.loc_for_module("DotReaderLib16"))
 
     def test_language_for_module(self):
-        test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'loc_mappings.json')
+        test_fixture_path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "loc_mappings.json"
+        )
         lr = LocFileReader()
         lr.read_loc_file(test_fixture_path)
 

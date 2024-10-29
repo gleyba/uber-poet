@@ -20,7 +20,6 @@ from uberpoet.moduletree import ModuleNode
 
 
 class TestModuleTree(unittest.TestCase):
-
     def test_gen_layered_graph(self):
         root, nodes = ModuleNode.gen_layered_graph(10, 10)
         self.verify_graph(nodes)

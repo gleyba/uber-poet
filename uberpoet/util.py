@@ -20,6 +20,7 @@ import subprocess
 
 class SeedContainer(object):
     """Holds the seed number variable"""
+
     seed = 0
 
 
@@ -74,7 +75,7 @@ def percentage_split(list_to_split, percentages):
 def sudo_enabled():
     """Tells you if the current 'shell' has sudo permission."""
     try:
-        subprocess.check_call(['sudo', '-n', 'true'])
+        subprocess.check_call(["sudo", "-n", "true"])
         return True
     except subprocess.CalledProcessError:
         return False
@@ -86,7 +87,11 @@ def check_dependent_commands(command_list):
     Returns a list of misssing commands.  Empty if all commands are available.
     """
     # noinspection PyUnresolvedReferences
-    return [command for command in command_list if not distutils.spawn.find_executable(command)]
+    return [
+        command
+        for command in command_list
+        if not distutils.spawn.find_executable(command)
+    ]
 
 
 def pad_list(l, size, value=0):
@@ -102,5 +107,7 @@ def grab_mac_marketing_name():
     Returns a string telling you you the macOS marketing name of the device your running on.
     Ex: "MacBook Pro (15-inch, 2018)"
     """
-    script_path = os.path.join(os.path.dirname(__file__), "resources", "get_market_name.sh")
+    script_path = os.path.join(
+        os.path.dirname(__file__), "resources", "get_market_name.sh"
+    )
     return subprocess.check_output([script_path])

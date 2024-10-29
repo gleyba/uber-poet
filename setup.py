@@ -20,7 +20,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="uberpoet",
     version="1.0.0",
-    license='Apache License, Version 2.0',
+    license="Apache License, Version 2.0",
     author="Uber Technologies, Inc.",
     description="A mock swift project generator & build runner to help benchmark various module configurations.",
     long_description=long_description,
@@ -38,9 +38,9 @@ setuptools.setup(
         "Topic :: Software Development :: Code Generators",
     ],
     entry_points={
-        'console_scripts': [
-            'uberpoet-genproj.py=uberpoet.genproj:main',
-            'uberpoet-multisuite.py=uberpoet.multisuite:main',
+        "console_scripts": [
+            "uberpoet-genproj.py=uberpoet.genproj:main",
+            "uberpoet-multisuite.py=uberpoet.multisuite:main",
         ],
     },
 )

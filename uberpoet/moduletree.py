@@ -18,15 +18,15 @@ import random
 
 from toposort import toposort_flatten
 
-from .util import merge_lists
+from uberpoet.util import merge_lists
 
 
 class ModuleGenType(object):
-    flat = 'flat'
-    bs_flat = 'bs_flat'
-    layered = 'layered'
-    bs_layered = 'bs_layered'
-    dot = 'dot'
+    flat = "flat"
+    bs_flat = "bs_flat"
+    layered = "layered"
+    bs_layered = "bs_layered"
+    dot = "dot"
 
     @staticmethod
     def enum_list():
@@ -42,8 +42,8 @@ class ModuleGenType(object):
 class ModuleNode(object):
     """Represents a module in a dependency graph"""
 
-    APP = 'APP'
-    LIBRARY = 'LIBRARY'
+    APP = "APP"
+    LIBRARY = "LIBRARY"
 
     def __init__(self, name, node_type, deps=None):
         super(ModuleNode, self).__init__()
@@ -63,12 +63,17 @@ class ModuleNode(object):
     def __eq__(self, other):
         return (self.name, self.node_type) == (other.name, other.node_type)
 
+    def __lt__(self, other):
+        return (self.name, self.node_type) < (other.name, other.node_type)
+
     def __repr__(self):
         return "ModuleNode('{}','{}')".format(self.name, self.node_type)
 
     def __str__(self):
         extra = True if self.extra_info else False
-        return "<{} : {} deps: {} has_info: {}>".format(self.name, self.node_type, len(self.deps), extra)
+        return "<{} : {} deps: {} has_info: {}>".format(
+            self.name, self.node_type, len(self.deps), extra
+        )
 
     @staticmethod
     def gen_layered_graph(layer_count, nodes_per_layer, deps_per_node=5):
@@ -77,15 +82,20 @@ class ModuleNode(object):
         below it"""
 
         def node(f_layer, f_node):
-            return ModuleNode('MockLib{}_{}'.format(f_layer, f_node), ModuleNode.LIBRARY)
+            return ModuleNode(
+                "MockLib{}_{}".format(f_layer, f_node), ModuleNode.LIBRARY
+            )
 
-        layers = [[node(l, n) for n in range(nodes_per_layer)] for l in range(layer_count)]
-        app_node = ModuleNode('App', ModuleNode.APP, layers[0])
+        layers = [
+            [node(l, n) for n in range(int(nodes_per_layer))]
+            for l in range(layer_count)
+        ]
+        app_node = ModuleNode("App", ModuleNode.APP, layers[0])
 
         node_graph = {}
 
         for i, layer in enumerate(layers):
-            lower_layers = layers[(i + 1):] if i != len(layers) - 1 else []
+            lower_layers = layers[(i + 1) :] if i != len(layers) - 1 else []
             lower_merged = merge_lists(lower_layers)
             for node in layer:
                 if deps_per_node < len(lower_merged):
@@ -101,16 +111,25 @@ class ModuleNode(object):
     def gen_flat_graph(module_count):
         """Generates a module dependency graph that depends on `module_count`
         libraries that don't depend on anything"""
-        libraries = [ModuleNode('MockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(module_count)]
-        app_node = ModuleNode('App', ModuleNode.APP, libraries)
+        libraries = [
+            ModuleNode("MockLib{}".format(i), ModuleNode.LIBRARY)
+            for i in range(module_count)
+        ]
+        app_node = ModuleNode("App", ModuleNode.APP, libraries)
 
         return app_node, (libraries + [app_node])
 
     @staticmethod
     def gen_flat_big_small_graph(big_mod_count, small_mod_count):
-        big_libs = [ModuleNode('BigMockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(big_mod_count)]
-        small_libs = [ModuleNode('SmallMockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(small_mod_count)]
-        app_node = ModuleNode('App', ModuleNode.APP, big_libs + small_libs)
+        big_libs = [
+            ModuleNode("BigMockLib{}".format(i), ModuleNode.LIBRARY)
+            for i in range(big_mod_count)
+        ]
+        small_libs = [
+            ModuleNode("SmallMockLib{}".format(i), ModuleNode.LIBRARY)
+            for i in range(small_mod_count)
+        ]
+        app_node = ModuleNode("App", ModuleNode.APP, big_libs + small_libs)
 
         for l in big_libs:
             l.code_units = 20
@@ -119,15 +138,22 @@ class ModuleNode(object):
 
     @staticmethod
     def gen_layered_big_small_graph(big_mod_count, small_mod_count):
-        big_libs = [ModuleNode('AppMockLib{}'.format(i), ModuleNode.LIBRARY) for i in range(big_mod_count)]
-        app_node = ModuleNode('App', ModuleNode.APP, big_libs)
+        big_libs = [
+            ModuleNode("AppMockLib{}".format(i), ModuleNode.LIBRARY)
+            for i in range(big_mod_count)
+        ]
+        app_node = ModuleNode("App", ModuleNode.APP, big_libs)
 
         layer_count = 3
         layer_mod_count = small_mod_count / layer_count
         deps_per_layer = layer_count / 2 if layer_count >= 2 else 1
 
-        layer_app_node, layer_nodes = ModuleNode.gen_layered_graph(layer_count, layer_mod_count, deps_per_layer)
-        layer_nodes = [layer_item for layer_item in layer_nodes if layer_item != layer_app_node]
+        layer_app_node, layer_nodes = ModuleNode.gen_layered_graph(
+            layer_count, layer_mod_count, int(deps_per_layer)
+        )
+        layer_nodes = [
+            layer_item for layer_item in layer_nodes if layer_item != layer_app_node
+        ]
 
         for l in big_libs:
             l.code_units = 20

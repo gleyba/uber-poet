@@ -58,13 +58,23 @@ public class MyClass{0}: NSObject {{
 swift_to_swift_func_call_template = """MyClass{0}().complexCrap{1}(arg: 4, stuff: 2)"""
 swift_to_objc_func_call_template = """MyClass_{0}().complexCrap{1}(4, stuff: \"2\")"""
 
-swift_to_swift_objc_friendly_func_call_template = """MyClass{0}().complexStuff{1}(arg: \"4\")"""
-swift_to_objc_friendly_func_call_template = """MyClass_{0}().complexStuff{1}(arg: \"4\")"""
+swift_to_swift_objc_friendly_func_call_template = (
+    """MyClass{0}().complexStuff{1}(arg: \"4\")"""
+)
+swift_to_objc_friendly_func_call_template = (
+    """MyClass_{0}().complexStuff{1}(arg: \"4\")"""
+)
 
-objc_to_swift_func_call_template = """[[[MyClass{} alloc] init] complexStuff{}WithArg:@\"4\"];"""
-objc_to_objc_func_call_template = """[[[MyClass_{} alloc] init] complexCrap{}:4 stuff:@\"2\"];"""
+objc_to_swift_func_call_template = (
+    """[[[MyClass{} alloc] init] complexStuff{}WithArg:@\"4\"];"""
+)
+objc_to_objc_func_call_template = (
+    """[[[MyClass_{} alloc] init] complexCrap{}:4 stuff:@\"2\"];"""
+)
 
-objc_header_func_template = """- (int)complexCrap{0}:(int)arg stuff:(nonnull NSString *)stuff;"""
+objc_header_func_template = (
+    """- (int)complexCrap{0}:(int)arg stuff:(nonnull NSString *)stuff;"""
+)
 
 objc_source_func_template = """
 - (int)complexCrap{0}:(int)arg stuff:(nonnull NSString *)stuff;
@@ -114,7 +124,11 @@ def get_func_call_template(from_language, to_language, function_type):
     if function_type == FuncType.SWIFT_ONLY:
         if from_language == Language.OBJC:
             raise ValueError("Cannot invoke SWIFT_ONLY method from ObjC!")
-        return swift_to_swift_func_call_template if to_language == Language.SWIFT else swift_to_objc_func_call_template
+        return (
+            swift_to_swift_func_call_template
+            if to_language == Language.SWIFT
+            else swift_to_objc_func_call_template
+        )
     elif function_type == FuncType.OBJC_FRIENDLY:
         if from_language == Language.SWIFT:
             if to_language == Language.SWIFT:
@@ -139,20 +153,27 @@ def get_import_func_calls(from_language, import_list, indent=0):
             for class_num, class_funcs in file_result.classes.items():
                 for func_type, func_nums in class_funcs.items():
                     for func_num in func_nums:
-                        if (func_type == FuncType.SWIFT_ONLY and from_language == Language.OBJC and
-                                to_language == Language.SWIFT):
+                        if (
+                            func_type == FuncType.SWIFT_ONLY
+                            and from_language == Language.OBJC
+                            and to_language == Language.SWIFT
+                        ):
                             # We cannot invoke Swift only functions from ObjC since they use generics.
                             continue
-                        text = get_func_call_template(from_language, to_language, func_type).format(class_num, func_num)
-                        indented_text = '\n'.join(" " * indent + line for line in text.splitlines())
+                        text = get_func_call_template(
+                            from_language, to_language, func_type
+                        ).format(class_num, func_num)
+                        indented_text = "\n".join(
+                            " " * indent + line for line in text.splitlines()
+                        )
                         out.append(indented_text)
 
     return "\n".join(out)
 
 
 class Language(object):
-    SWIFT = 'Swift'
-    OBJC = 'Objective-C'
+    SWIFT = "Swift"
+    OBJC = "Objective-C"
 
     @staticmethod
     def enum_list():
@@ -161,42 +182,41 @@ class Language(object):
 
 class FuncType(object):
     """
-  Describes the type of function added to a class. Helps distinguish how to invoke a function
-  between modules.
-  """
-    SWIFT_ONLY = 'swift_only'
-    OBJC_FRIENDLY = 'objc_friendly'
+    Describes the type of function added to a class. Helps distinguish how to invoke a function
+    between modules.
+    """
+
+    SWIFT_ONLY = "swift_only"
+    OBJC_FRIENDLY = "objc_friendly"
 
 
 class FileResult(object):
-
     def __init__(self, text, functions, classes):
         super(FileResult, self).__init__()
         self.text = text  # string
-        self.text_line_count = len(text.split('\n'))
+        self.text_line_count = len(text.split("\n"))
         self.functions = functions  # list of indexes
         self.classes = classes  # {class index: {func type: function indexes}}
 
     def __str__(self):
-        return "<text_line_count : {} functions : {} classes : {}>".format(self.text_line_count, self.functions,
-                                                                           self.classes)
+        return "<text_line_count : {} functions : {} classes : {}>".format(
+            self.text_line_count, self.functions, self.classes
+        )
 
 
 class FileGenerator(object):
-
     def gen_file(self, class_count, function_count):
         return FileResult("", [], {})
 
 
 class ObjCHeaderFileGenerator(FileGenerator):
-
     @staticmethod
     def language():
         return Language.OBJC
 
     @staticmethod
     def extension():
-        return '.h'
+        return ".h"
 
     @staticmethod
     def gen_func(nums):
@@ -213,7 +233,9 @@ class ObjCHeaderFileGenerator(FileGenerator):
 
         for c in objc_class.classes:
             num = c
-            func_out, func_nums = self.gen_func(objc_class.classes[c][FuncType.OBJC_FRIENDLY])
+            func_out, func_nums = self.gen_func(
+                objc_class.classes[c][FuncType.OBJC_FRIENDLY]
+            )
             out.append(objc_header_template.format(num, func_out))
             class_nums[num] = {FuncType.OBJC_FRIENDLY: func_nums}
 
@@ -228,14 +250,13 @@ class ObjCHeaderFileGenerator(FileGenerator):
 
 
 class ObjCSourceFileGenerator(FileGenerator):
-
     @staticmethod
     def language():
         return Language.OBJC
 
     @staticmethod
     def extension():
-        return '.m'
+        return ".m"
 
     @staticmethod
     def gen_func(function_count, var_name):
@@ -257,7 +278,9 @@ class ObjCSourceFileGenerator(FileGenerator):
         for _ in range(class_count):
             num = seed()
             func_out, func_nums = self.gen_func(func_per_class_count, "x")
-            func_call_out = get_import_func_calls(self.language(), import_list, indent=4)
+            func_call_out = get_import_func_calls(
+                self.language(), import_list, indent=4
+            )
             out.append(objc_source_template.format(num, func_out, func_call_out))
             class_nums[num] = {FuncType.OBJC_FRIENDLY: func_nums}
 
@@ -269,9 +292,9 @@ class ObjCSourceFileGenerator(FileGenerator):
         imports = []
         for i in import_list:
             if type(i) is str:
-                imports.append('#import \"{}\"'.format(i))
+                imports.append('#import "{}"'.format(i))
             elif type(i) is dict:
-                imports.append('@import {};'.format(i.keys()[0]))
+                imports.append("@import {};".format(i.keys()[0]))
         imports_out = "\n".join(imports)
         class_out, class_nums = self.gen_class(class_count, 5, import_list)
 
@@ -281,7 +304,6 @@ class ObjCSourceFileGenerator(FileGenerator):
 
 
 class SwiftFileGenerator(FileGenerator):
-
     def __init__(self):
         self.gen_state = {}
 
@@ -291,7 +313,7 @@ class SwiftFileGenerator(FileGenerator):
 
     @staticmethod
     def extension():
-        return '.swift'
+        return ".swift"
 
     @staticmethod
     def gen_func(function_count, var_name, indent=0):
@@ -301,7 +323,7 @@ class SwiftFileGenerator(FileGenerator):
         for _ in range(function_count):
             num = seed()
             text = swift_func_template.format(num, var_name)
-            indented_text = '\n'.join(" " * indent + line for line in text.splitlines())
+            indented_text = "\n".join(" " * indent + line for line in text.splitlines())
             nums.append(num)
             out.append(indented_text)
 
@@ -314,7 +336,7 @@ class SwiftFileGenerator(FileGenerator):
 
         num = seed()
         text = swift_func_objc_friendly_template.format(num)
-        indented_text = '\n'.join(" " * indent + line for line in text.splitlines())
+        indented_text = "\n".join(" " * indent + line for line in text.splitlines())
         nums.append(num)
         out.append(indented_text)
 
@@ -326,15 +348,21 @@ class SwiftFileGenerator(FileGenerator):
 
         for _ in range(class_count):
             num = seed()
-            swift_only_func_out, swift_only_func_nums = self.gen_func(func_per_class_count, "x", indent=4)
-            swift_objc_friendly_func_out, swift_objc_friendly_func_nums = self.gen_objc_friendly_func(indent=4)
+            swift_only_func_out, swift_only_func_nums = self.gen_func(
+                func_per_class_count, "x", indent=4
+            )
+            swift_objc_friendly_func_out, swift_objc_friendly_func_nums = (
+                self.gen_objc_friendly_func(indent=4)
+            )
             func_out = swift_only_func_out + "\n" + swift_objc_friendly_func_out
-            func_call_out = get_import_func_calls(self.language(), import_list, indent=8)
+            func_call_out = get_import_func_calls(
+                self.language(), import_list, indent=8
+            )
             out.append(swift_class_template.format(num, func_out, func_call_out))
 
             class_nums[num] = {
                 FuncType.SWIFT_ONLY: swift_only_func_nums,
-                FuncType.OBJC_FRIENDLY: swift_objc_friendly_func_nums
+                FuncType.OBJC_FRIENDLY: swift_objc_friendly_func_nums,
             }
 
         return "\n".join(out), class_nums
@@ -342,7 +370,12 @@ class SwiftFileGenerator(FileGenerator):
     def gen_file(self, class_count, function_count, import_list=None):
         if import_list is None:
             import_list = []
-        imports_out = "\n".join(["import {}".format(i if type(i) is str else i.keys()[0]) for i in import_list])
+        imports_out = "\n".join(
+            [
+                "import {}".format(i if type(i) is str else i.keys()[0])
+                for i in import_list
+            ]
+        )
         func_out, func_nums = self.gen_func(function_count, "7")
         class_out, class_nums = self.gen_class(class_count, 5, import_list)
 
@@ -352,8 +385,9 @@ class SwiftFileGenerator(FileGenerator):
 
     @staticmethod
     def gen_main(template, importing_module_name, class_num, func_num, to_language):
-        import_line = 'import {}'.format(importing_module_name)
-        action_expr = get_func_call_template(Language.SWIFT, to_language, FuncType.SWIFT_ONLY).format(
-            class_num, func_num)
+        import_line = "import {}".format(importing_module_name)
+        action_expr = get_func_call_template(
+            Language.SWIFT, to_language, FuncType.SWIFT_ONLY
+        ).format(class_num, func_num)
         print_line = 'print("\\({})")'.format(action_expr)
         return template.format(uber_poet_header, import_line, print_line)

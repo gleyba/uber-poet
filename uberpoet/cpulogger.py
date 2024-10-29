@@ -16,11 +16,14 @@ import logging
 import os
 import subprocess
 import sys
+import json
+from os.path import join
 from tempfile import TemporaryFile
 
 
 class CPULog(object):
     """An object representation of a CPU state log"""
+
     EPOCH_MULT = 1000000
 
     def __init__(self, line=None):
@@ -40,7 +43,7 @@ class CPULog(object):
         line = str(line)
         items = line.split(" ")
         # filter out null chars that sometimes showup
-        epoch_str = items[0].translate(None, '\x00')
+        epoch_str = items[0].translate(None, "\x00")
 
         self.epoch = int(epoch_str)
         self.user = percent_to_num(items[3])
@@ -54,11 +57,7 @@ class CPULog(object):
             "ph": "C",
             "pid": 1,
             "ts": self.chrome_epoch,
-            "args": {
-                "user": self.user,
-                "sys": self.sys,
-                "idle": self.idle
-            }
+            "args": {"user": self.user, "sys": self.sys, "idle": self.idle},
         }
 
     @property
@@ -79,7 +78,7 @@ class CPULog(object):
         min_ts = sys.maxsize
         max_ts = -1
         for trace in traces:
-            ts = trace['ts']
+            ts = trace["ts"]
             if ts < min_ts:
                 min_ts = ts
             elif ts > max_ts:
@@ -90,7 +89,11 @@ class CPULog(object):
     def apply_log_to_trace(log_list, traces):
         """Adds CPU items to a chrome trace"""
         min_ts, max_ts = CPULog.find_timestamp_range(traces)
-        traces_in_range = [i.chrome_trace() for i in log_list if i.chrome_epoch_in_range(min_ts, max_ts)]
+        traces_in_range = [
+            i.chrome_trace()
+            for i in log_list
+            if i.chrome_epoch_in_range(min_ts, max_ts)
+        ]
         return traces + traces_in_range
 
 
@@ -111,8 +114,10 @@ class CPULogger(object):
     def start(self):
         """Starts the CPU logger"""
         self.stop()
-        logging.warning('You will probably have to call `sudo killall top` to'
-                        ' kill the CPU monitor after this python script finishes execution.')
+        logging.warning(
+            "You will probably have to call `sudo killall top` to"
+            " kill the CPU monitor after this python script finishes execution."
+        )
         script_path = os.path.join(os.path.dirname(__file__), "resources", "cpu_log.sh")
         self.process = subprocess.Popen([script_path], stdout=self.output)
 
@@ -135,8 +140,10 @@ class CPULogger(object):
         you need to kill the top process outside of the python process.
         """
         self.stop()
-        command = ['sudo', 'killall', 'top']
-        logging.warning('Killing dangling CPU monitor with sudo. Command: `%s`', ' '.join(command))
+        command = ["sudo", "killall", "top"]
+        logging.warning(
+            "Killing dangling CPU monitor with sudo. Command: `%s`", " ".join(command)
+        )
         try:
             subprocess.check_call(command)
         except subprocess.CalledProcessError:
@@ -150,3 +157,21 @@ class CPULogger(object):
         self.output.close()
         self.output = TemporaryFile()
         return out
+
+
+def apply_cpu_to_traces(build_trace_path, cpu_logger, time_cutoff=None):
+    logging.info("Applying CPU info to traces in %s", build_trace_path)
+    cpu_logs = cpu_logger.process_log()
+    trace_paths = [
+        join(build_trace_path, f)
+        for f in os.listdir(build_trace_path)
+        if f.endswith("trace")
+    ]
+    for trace_path in trace_paths:
+        if time_cutoff and os.path.getmtime(trace_path) < time_cutoff:
+            continue
+        with open(trace_path, "r") as trace_file:
+            traces = json.load(trace_file)
+            new_traces = CPULog.apply_log_to_trace(cpu_logs, traces)
+        with open(trace_path + ".json", "w") as new_trace_file:
+            json.dump(new_traces, new_trace_file)
