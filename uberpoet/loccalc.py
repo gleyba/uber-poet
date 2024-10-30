@@ -27,7 +27,7 @@ from .memoize import memoized
 
 class LOCCalculator(object):
     @memoized
-    def calculate_loc(self, text, language):
+    def calculate_loc(self, text: str, language: Language):
         # actual code = lines of code, minus whitespace
         # calculated using cloc
         if language == Language.SWIFT:

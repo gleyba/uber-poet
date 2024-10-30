@@ -63,7 +63,7 @@ def project_generator_for_arg(args):
             raise ValueError(
                 "Must supply --blaze_module_path when using the Buck or Bazel generators."
             )
-        return blazeprojectgen.BlazeProjectGenerator(
+        return blazeprojectgen.IosBlazeProjectGenerator(
             args.output_directory,
             args.blaze_module_path,
             use_wmo=args.use_wmo,

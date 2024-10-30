@@ -4,6 +4,7 @@ load("@pip//:requirements.bzl", "requirement")
 py_library(
     name = "uberpoet",
     srcs = glob([ "**/*.py" ]),
+    data = glob([ "resources/**" ]),
     deps = [
         requirement("toposort"),
         requirement("configparser"),

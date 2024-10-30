@@ -32,7 +32,7 @@ apple_framework(
     swift_version = "5.0",
     visibility = ["//visibility:public"],
     deps = [
-        {1}
+        {deps}
     ],
 )
 
@@ -59,7 +59,7 @@ ios_application(
     ],
     swift_version = "5.0",
     xcconfig = {{
-        "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{2}",
+        "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{wmo}",
     }},
     deps = [":AppContainer"],
 )

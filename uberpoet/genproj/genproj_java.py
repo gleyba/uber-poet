@@ -14,8 +14,15 @@
 
 from __future__ import absolute_import
 
+import logging
+
 from uberpoet.commandlineutil import Graph
 
 
 def gen_java_project(args, graph: Graph) -> dict:
+    logging.info(
+        "Creating a {} module count mock app in {}".format(
+            len(graph.node_list), args.output_directory
+        )
+    )
     return {}

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name = "blazeprojectgen"
-
-from .base_blazeprojectgen import *
-from .ios_blazeprojectgen import *
-from .java_bazelprojectgen import *
+from .filegen import *
+from .java_filegen import *
+from .objc_filegen import *
+from .swift_filegen import *

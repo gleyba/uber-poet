@@ -34,10 +34,10 @@ apple_library(
     compiler_flags = ["-fmodules"],
     configs = {{
         "Debug": {{
-            "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{2}",
+            "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{wmo}",
         }},
     }},
     deps = [
-        {1}
+        {deps}
     ],
 )
