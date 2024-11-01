@@ -104,7 +104,7 @@ class ObjCHeaderFileGenerator(FileGenerator):
 
         chunks = [uber_poet_header, objc_system_import_template, class_out]
 
-        return FileResult("\n".join(chunks), [], class_nums)
+        return FileResult("\n".join(chunks), [], class_nums, Language.OBJC)
 
 
 class ObjCSourceFileGenerator(FileGenerator):
@@ -158,4 +158,4 @@ class ObjCSourceFileGenerator(FileGenerator):
 
         chunks = [uber_poet_header, objc_system_import_template, imports_out, class_out]
 
-        return FileResult("\n".join(chunks), [], class_nums)
+        return FileResult("\n".join(chunks), [], class_nums, Language.OBJC)

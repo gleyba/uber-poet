@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 from os.path import basename, dirname, join
 
 from uberpoet import locreader
-from uberpoet.filegen import Language, FileResult
+from uberpoet.filegen import Language, FileResult, ProgressReporter
 from uberpoet.loccalc import LOCCalculator
 from uberpoet.moduletree import ModuleNode
 from uberpoet.util import first_in_dict, first_key, makedir
@@ -73,6 +73,7 @@ class BaseBlazeProjectGenerator(ABC):
         src_dir_name: str,
         resources: dict[str, str],
         resource_dirs: dict[str, str],
+        reporter: ProgressReporter,
     ):
         self.app_root = app_root
         self.blaze_app_root = blaze_app_root
@@ -86,6 +87,7 @@ class BaseBlazeProjectGenerator(ABC):
         self.src_dir_name = src_dir_name
         self.resources = resources
         self.resource_dirs = resource_dirs
+        self.reporter = reporter
 
     @staticmethod
     def load_resource(name):
@@ -257,7 +259,7 @@ class BaseBlazeProjectGenerator(ABC):
         # Make Text
         gen = self.generators[language]
         file_count = gen.get_file_count(loc_per_unit, module_node)
-        files = self.generators[language].generate_souces(file_count, deps_from_index)
+        files = gen.generate_souces(file_count, deps_from_index)
 
         # Make Module Directories
         module_dir_path = join(self.app_root, module_node.name)
@@ -273,6 +275,8 @@ class BaseBlazeProjectGenerator(ABC):
         for file_name, file_obj in files.items():
             file_path = join(files_dir_path, file_name)
             self.write_file(file_path, file_obj.text)
+            if self.reporter:
+                self.reporter.report_progress(file_obj.language, file_obj.text_line_count)
             file_obj.text = ""  # Save memory after write
 
         module_node.extra_info = files

@@ -16,3 +16,4 @@ from .filegen import *
 from .java_filegen import *
 from .objc_filegen import *
 from .swift_filegen import *
+from .progress_reporter import *

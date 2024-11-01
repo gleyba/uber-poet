@@ -43,19 +43,28 @@ class Language(object):
         return [Language.SWIFT, Language.OBJC, Language.JAVA]
 
     def __eq__(self, other):
-        return self.value == other.value
+        if type(other) == str:
+            return self.value == other
+        else:
+            return self.value == other.value
 
     def __hash__(self):
         return hash(self.value)
 
 
 class FileResult(object):
-    def __init__(self, text, functions, classes):
+    def __init__(
+            self, 
+            text, 
+            functions, 
+            classes, 
+            language: Language):
         super(FileResult, self).__init__()
         self.text = text  # string
-        self.text_line_count = len(text.split("\n"))
+        self.text_line_count = text.count("\n")
         self.functions = functions  # list of indexes
         self.classes = classes  # {class index: {func type: function indexes}}
+        self.language = language 
 
     def __str__(self):
         return "<text_line_count : {} functions : {} classes : {}>".format(
@@ -65,4 +74,4 @@ class FileResult(object):
 
 class FileGenerator(object):
     def gen_file(self, class_count, function_count):
-        return FileResult("", [], {})
+        return FileResult("", [], {}, Language.JAVA)

@@ -24,6 +24,7 @@ from uberpoet.filegen import (
     SwiftFileGenerator,
 )
 from uberpoet.moduletree import ModuleNode
+from uberpoet.filegen import ProgressReporter
 
 from .base_blazeprojectgen import BaseBlazeProjectGenerator, Generator
 
@@ -31,7 +32,10 @@ from .base_blazeprojectgen import BaseBlazeProjectGenerator, Generator
 class SwiftGenerator(Generator):
     def __init__(self):
         self.swift_gen = SwiftFileGenerator()
-        super().__init__(Language.SWIFT, self.swift_gen.gen_file(3, 3))
+        super().__init__(
+            Language.SWIFT, 
+            self.swift_gen.gen_file(3, 3),
+        )
 
     def generate_souces(
         self, file_count: int, deps_from_index: list[dict[str, ModuleNode]]
@@ -41,12 +45,17 @@ class SwiftGenerator(Generator):
             for i in range(file_count)
         }
 
+    def gen_main(self, template, importing_module_name, class_num, func_num, to_language):
+        return self.swift_gen.gen_main(template, importing_module_name, class_num, func_num, to_language)
 
 class ObjCGenerator(Generator):
-    def __init__(self):
+    def __init__(self,):
         self.objc_source_gen = ObjCSourceFileGenerator()
         self.objc_header_gen = ObjCHeaderFileGenerator()
-        super().__init__(Language.OBJC, self.objc_source_gen.gen_file(3, 3))
+        super().__init__(
+            Language.OBJC, 
+            self.objc_source_gen.gen_file(3, 3)
+        )
 
     def generate_souces(
         self, file_count: int, deps_from_index: list[dict[str, ModuleNode]]
@@ -66,18 +75,24 @@ class ObjCGenerator(Generator):
 class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
     BazelResources = {
         "Info.plist": "App/Info.plist",
-        "mockbazelworkspace": "WORKSPACE.bazel",
+        "mock_bazel_ios_workspace": "WORKSPACE.bazel",
     }
     BazelResourceDirs = {
         "tools": "tools",
     }
     BuckResouces = {
         "Info.plist": "App/Info.plist",
-        "mockbuckconfig": ".buckconfig",
+        "mock_buck_config": ".buckconfig",
     }
     BuckResourceDirs = {}
 
-    def __init__(self, app_root, blaze_app_root, use_wmo=False, flavor="buck"):
+    def __init__(
+            self, 
+            app_root, 
+            blaze_app_root, 
+            use_wmo=False, 
+            flavor="buck",
+            reporter: ProgressReporter = None):
         super().__init__(
             app_root=app_root,
             blaze_app_root=blaze_app_root,
@@ -95,6 +110,7 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
             resource_dirs=IosBlazeProjectGenerator.BuckResourceDirs
             if flavor == "buck"
             else IosBlazeProjectGenerator.BazelResourceDirs,
+            reporter = reporter,
         )
 
         self.use_wmo = use_wmo

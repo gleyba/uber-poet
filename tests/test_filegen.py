@@ -105,7 +105,7 @@ MyClass0().complexStuff0(arg: "4")"""
             }
         elif language == Language.OBJC:
             class_functions = {FuncType.OBJC_FRIENDLY: [0, 1, 2]}
-        file_result = FileResult("body", [], {0: class_functions})
+        file_result = FileResult("body", [], {0: class_functions}, language)
         return {
             name: {"files": {file_name: file_result}, "loc": 150, "language": language}
         }

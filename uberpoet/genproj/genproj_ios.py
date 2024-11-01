@@ -16,13 +16,25 @@ from __future__ import absolute_import
 
 import logging
 
+from typing import Callable
+
 from uberpoet import blazeprojectgen, cpprojectgen
 
+from uberpoet.filegen import Language
 from uberpoet.commandlineutil import Graph
 
+from uberpoet.filegen import ProgressReporter
 
-def gen_ios_project(args, graph: Graph) -> dict:
-    gen = project_generator_for_arg(args)
+def gen_ios_project(args, graph: Graph, pclbk: Callable[[Language, int, int], None]) -> dict:
+    reporter = ProgressReporter(
+        {
+            Language.SWIFT: graph.config.swift_lines_of_code,
+            Language.OBJC: graph.config.objc_lines_of_code,
+        },
+        pclbk,
+    )
+    
+    gen = project_generator_for_arg(args, reporter)
 
     logging.info("Project Generator type: %s", args.project_generator_type)
     logging.info("Generation type: %s", args.gen_type)
@@ -57,7 +69,7 @@ def gen_ios_project(args, graph: Graph) -> dict:
     }
 
 
-def project_generator_for_arg(args):
+def project_generator_for_arg(args, reporter: ProgressReporter):
     if args.project_generator_type == "buck" or args.project_generator_type == "bazel":
         if not args.blaze_module_path:
             raise ValueError(
@@ -68,6 +80,7 @@ def project_generator_for_arg(args):
             args.blaze_module_path,
             use_wmo=args.use_wmo,
             flavor=args.project_generator_type,
+            reporter=reporter,
         )
     elif args.project_generator_type == "cocoapods":
         return cpprojectgen.CocoaPodsProjectGenerator(

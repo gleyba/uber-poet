@@ -14,18 +14,15 @@
 
 from __future__ import absolute_import
 
-import logging
-
 from typing import Callable
 
 from uberpoet.filegen import Language
-from uberpoet.commandlineutil import Graph
 
+class ProgressReporter(object):
+    
+    def __init__(self, langs: dict[Language, int], pclbk: Callable[[Language, int, int], None]):
+        self.langs = langs
+        self.pclbk = pclbk
 
-def gen_java_project(args, graph: Graph, _pclbk: Callable[[Language, int, int], None]) -> dict:
-    logging.info(
-        "Creating a {} module count mock app in {}".format(
-            len(graph.node_list), args.output_directory
-        )
-    )
-    return {}
+    def report_progress(self, lang: Language, lines: int):
+        self.pclbk(lang, lines, self.langs[lang])

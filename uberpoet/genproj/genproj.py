@@ -22,6 +22,8 @@ import time
 import os
 import shutil
 from os.path import join
+from typing import Callable
+from tqdm import tqdm
 
 from uberpoet.commandlineutil import (
     validate_app_gen_options,
@@ -29,10 +31,10 @@ from uberpoet.commandlineutil import (
     create_graph,
     Graph,
 )
+from uberpoet.filegen import Language
+
 from .genproj_ios import gen_ios_project
 from .genproj_java import gen_java_project
-
-
 class GenProjCommandLine(object):
     @staticmethod
     def make_args(args):
@@ -66,7 +68,13 @@ class GenProjCommandLine(object):
 
         del_old_output_dir(args.output_directory)
 
-        project_info = gen_project(args, graph)
+        with tqdm() as pbar:
+            def progress(lang, lines, total):
+                pbar.update(lines)
+                pbar.total = total
+                pbar.set_description(lang.value)
+
+            project_info = gen_project(args, graph, progress)
 
         fin = time.time()
         logging.info("Done in %f s", fin - start)
@@ -79,11 +87,11 @@ class GenProjCommandLine(object):
             json.dump(project_info, project_info_json_file)
 
 
-def gen_project(args, graph: Graph) -> dict:
+def gen_project(args, graph: Graph, pclbk: Callable[[Language, int, int], None]) -> dict:
     if args.command == "ios":
-        return gen_ios_project(args, graph)
+        return gen_ios_project(args, graph, pclbk)
     elif args.command == "java":
-        return gen_java_project(args, graph)
+        return gen_java_project(args, graph, pclbk)
 
 
 def print_nodes(graph: Graph):
