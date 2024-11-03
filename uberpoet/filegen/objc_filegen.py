@@ -99,12 +99,12 @@ class ObjCHeaderFileGenerator(FileGenerator):
 
         return "\n".join(out), class_nums
 
-    def gen_file(self, objc_class):
+    def gen_file(self, filename: str, objc_class: FileResult):
         class_out, class_nums = self.get_header(objc_class)
 
         chunks = [uber_poet_header, objc_system_import_template, class_out]
 
-        return FileResult("\n".join(chunks), [], class_nums, Language.OBJC)
+        return FileResult(filename, Language.OBJC, "\n".join(chunks), [], class_nums)
 
 
 class ObjCSourceFileGenerator(FileGenerator):
@@ -144,18 +144,24 @@ class ObjCSourceFileGenerator(FileGenerator):
 
         return "\n".join(out), class_nums
 
-    def gen_file(self, class_count, function_count, import_list=None):
+    def gen_file(
+        self,
+        filename: str,
+        class_count: int,
+        function_count: int,
+        import_list: list[ModuleResult | str],
+    ):
         if import_list is None:
             import_list = []
         imports = []
         for i in import_list:
             if type(i) is str:
                 imports.append('#import "{}"'.format(i))
-            elif type(i) is dict:
-                imports.append("@import {};".format(i.keys()[0]))
+            elif type(i) is ModuleResult:
+                imports.append("@import {};".format(i.name))
         imports_out = "\n".join(imports)
         class_out, class_nums = self.gen_class(class_count, 5, import_list)
 
         chunks = [uber_poet_header, objc_system_import_template, imports_out, class_out]
 
-        return FileResult("\n".join(chunks), [], class_nums, Language.OBJC)
+        return FileResult(filename, Language.OBJC, "\n".join(chunks), [], class_nums)

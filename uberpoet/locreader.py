@@ -54,4 +54,8 @@ class LocFileReader(object):
                 )
             )
         module_info = self.cloc_mappings[mod_name]
-        return module_info["language"] if type(module_info) is dict else Language.SWIFT
+        return (
+            Language.from_str(module_info["language"])
+            if type(module_info) is dict
+            else Language.SWIFT
+        )

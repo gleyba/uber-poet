@@ -18,9 +18,11 @@ from typing import Callable
 
 from uberpoet.filegen import Language
 
+
 class ProgressReporter(object):
-    
-    def __init__(self, langs: dict[Language, int], pclbk: Callable[[Language, int, int], None]):
+    def __init__(
+        self, langs: dict[Language, int], pclbk: Callable[[Language, int, int], None]
+    ):
         self.langs = langs
         self.pclbk = pclbk
 

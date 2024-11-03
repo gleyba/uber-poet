@@ -14,6 +14,9 @@
 
 from __future__ import absolute_import
 
+from abc import ABC
+
+from dataclasses import dataclass
 from uberpoet.util import classproperty
 
 uber_poet_header = """
@@ -39,6 +42,17 @@ class Language(object):
         return Language("Java")
 
     @staticmethod
+    def from_str(value: str):
+        if value == "Swift":
+            return Language.SWIFT
+        elif value == "Objective-C":
+            return Language.OBJC
+        elif value == "Java":
+            return Language.JAVA
+        else:
+            raise Exception("Unknown language: %s" % value)
+
+    @staticmethod
     def enum_list():
         return [Language.SWIFT, Language.OBJC, Language.JAVA]
 
@@ -53,25 +67,30 @@ class Language(object):
 
 
 class FileResult(object):
-    def __init__(
-            self, 
-            text, 
-            functions, 
-            classes, 
-            language: Language):
+    def __init__(self, filename: str, language: Language, text, functions, classes):
         super(FileResult, self).__init__()
+        self.filename = filename
+        self.language = language
         self.text = text  # string
         self.text_line_count = text.count("\n")
         self.functions = functions  # list of indexes
         self.classes = classes  # {class index: {func type: function indexes}}
-        self.language = language 
 
     def __str__(self):
         return "<text_line_count : {} functions : {} classes : {}>".format(
-            self.text_line_count, self.functions, self.classes
+            self.text_line_count,
+            self.functions,
+            self.classes,
         )
 
 
-class FileGenerator(object):
-    def gen_file(self, class_count, function_count):
-        return FileResult("", [], {}, Language.JAVA)
+@dataclass
+class ModuleResult:
+    name: str
+    files: dict[str, FileResult]
+    loc: int
+    language: Language
+
+
+class FileGenerator(ABC):
+    pass

@@ -57,10 +57,12 @@ class CocoaPodsProjectGenerator(object):
         self.use_deterministic_uuids = use_deterministic_uuids
         self.generate_multiple_pod_projects = generate_multiple_pod_projects
         self.swift_file_size_loc = self.loc_calc.calculate_loc(
-            self.swift_gen.gen_file(3, 3).text, self.swift_gen.language()
+            self.swift_gen.gen_file("", 3, 3, []).text,
+            self.swift_gen.language(),
         )
         self.objc_file_size_loc = self.loc_calc.calculate_loc(
-            self.objc_source_gen.gen_file(3, 3).text, self.objc_source_gen.language()
+            self.objc_source_gen.gen_file("", 3, 3, []).text,
+            self.objc_source_gen.language(),
         )
 
     @property
@@ -234,7 +236,7 @@ class CocoaPodsProjectGenerator(object):
             files = {}
             for i in range(file_count):
                 objc_source_file = self.objc_source_gen.gen_file(
-                    3, 3, import_list=deps_from_index + ["File{}.h".format(i)]
+                    "File{}.m".format(i), 3, 3, deps_from_index + ["File{}.h".format(i)]
                 )
                 files["File{}.m".format(i)] = objc_source_file
                 files["File{}.h".format(i)] = self.objc_header_gen.gen_file(

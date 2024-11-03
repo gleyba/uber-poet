@@ -196,26 +196,39 @@ class SwiftFileGenerator(FileGenerator):
 
         return "\n".join(out), class_nums
 
-    def gen_file(self, class_count, function_count, import_list=None):
+    def gen_file(
+        self,
+        filename: str,
+        class_count: int,
+        function_count: int,
+        import_list: list[ModuleResult],
+    ):
         if import_list is None:
             import_list = []
         imports_out = "\n".join(
-            [
-                "import {}".format(i if type(i) is str else list(i.keys())[0])
-                for i in import_list
-            ]
+            ["import {}".format(i if type(i) is str else i.name) for i in import_list]
         )
         func_out, func_nums = self.gen_func(function_count, "7")
         class_out, class_nums = self.gen_class(class_count, 5, import_list)
 
         chunks = [uber_poet_header, imports_out, func_out, class_out]
 
-        return FileResult("\n".join(chunks), func_nums, class_nums, Language.SWIFT)
+        return FileResult(
+            filename,
+            Language.SWIFT,
+            "\n".join(chunks),
+            func_nums,
+            class_nums,
+        )
 
-    def gen_main(self, template, importing_module_name, class_num, func_num, to_language):
+    def gen_main(
+        self, template, importing_module_name, class_num, func_num, to_language
+    ):
         import_line = "import {}".format(importing_module_name)
         action_expr = get_func_call_template(
             Language.SWIFT, to_language, FuncType.SWIFT_ONLY
         ).format(class_num, func_num)
         print_line = 'print("\\({})")'.format(action_expr)
-        return template.format(uber_poet_header, import_line, print_line, Language.SWIFT)
+        return template.format(
+            uber_poet_header, import_line, print_line, Language.SWIFT
+        )

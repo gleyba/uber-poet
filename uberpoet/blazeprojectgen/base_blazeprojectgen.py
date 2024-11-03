@@ -18,23 +18,26 @@ import json
 import math
 import shutil
 
+import concurrent.futures
 from abc import ABC, abstractmethod
 from os.path import basename, dirname, join
+from typing import Generator
 
 from uberpoet import locreader
-from uberpoet.filegen import Language, FileResult, ProgressReporter
+from uberpoet.commandlineutil import BaseAppGenerationConfig
+from uberpoet.filegen import Language, FileResult, ModuleResult, ProgressReporter
 from uberpoet.loccalc import LOCCalculator
 from uberpoet.moduletree import ModuleNode
 from uberpoet.util import first_in_dict, first_key, makedir
 
 
-class Generator(ABC):
+class LanguageGenerator(ABC):
     loc_calc = LOCCalculator()
 
     def __init__(self, language: Language, sample_file: FileResult):
         super().__init__()
         self.language = language
-        self.file_size_loc = Generator.loc_calc.calculate_loc(
+        self.file_size_loc = LanguageGenerator.loc_calc.calculate_loc(
             sample_file.text, language
         )
 
@@ -51,7 +54,9 @@ class Generator(ABC):
         return int(file_count)
 
     @abstractmethod
-    def generate_souces(self) -> dict[str, FileResult]:
+    def generate_sources(
+        self, file_count: int, deps_from_index: list[ModuleResult]
+    ) -> Generator[FileResult, None, None]:
         pass
 
 
@@ -61,13 +66,14 @@ class BaseBlazeProjectGenerator(ABC):
 
     def __init__(
         self,
+        config: BaseAppGenerationConfig,
         app_root: str,
         blaze_app_root: str,
         bzl_lib_template: str,
         bzl_app_template: str,
         main_template: str,
         main_language: Language,
-        generators: list[Generator],
+        generators: list[LanguageGenerator],
         main_file_name: str,
         build_file_name: str,
         src_dir_name: str,
@@ -88,6 +94,7 @@ class BaseBlazeProjectGenerator(ABC):
         self.resources = resources
         self.resource_dirs = resource_dirs
         self.reporter = reporter
+        self.concurrency = config.concurrency
 
     @staticmethod
     def load_resource(name):
@@ -146,11 +153,12 @@ class BaseBlazeProjectGenerator(ABC):
                 loc = loc_reader.loc_for_module(n.name)
                 language = loc_reader.language_for_module(n.name)
                 files = self.gen_lib_module(module_index, n, loc, language)
-                module_index[n.name] = {
-                    "files": files,
-                    "loc": loc,
-                    "language": language,
-                }
+                module_index[n.name] = ModuleResult(
+                    name=n.name,
+                    files=files,
+                    loc=loc,
+                    language=language,
+                )
         else:
             total_code_units = 0
             for l in library_node_list:
@@ -167,20 +175,47 @@ class BaseBlazeProjectGenerator(ABC):
                 for language, percentage in module_count_percentage.items()
             }
 
-            module_index = {}
-            for idx, n in enumerate(library_node_list):
-                for cur_language, max_index in max_lang_index.items():
-                    language = cur_language
-                    if idx < max_index:
-                        break
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.concurrency
+            ) as executor:
 
-                files = self.gen_lib_module(module_index, n, loc_per_unit, language)
-                module_index[n.name] = {
-                    "files": files,
-                    "loc": loc_per_unit,
-                    "language": language,
+                def gen_module(idx, module):
+                    nonlocal module_index_futures
+                    language = None
+                    for cur_language, max_index in max_lang_index.items():
+                        language = cur_language
+                        if idx < max_index:
+                            break
+
+                    deps = [
+                        module_index_futures[dep.name].result() for dep in module.deps
+                    ]
+
+                    files = self.gen_lib_module(module, deps, loc_per_unit, language)
+
+                    return ModuleResult(
+                        name=module.name,
+                        files=files,
+                        loc=loc_per_unit,
+                        language=language,
+                    )
+
+                # We now return a topologically sorted list of the graph which means that we will already have the
+                # deps of a module inside the module index before we process this one.  This allows us to reach into
+                # the generated sources for the dependencies in order to create an instance of their class and
+                # invoke their functions.
+                module_index_futures = {
+                    node.name: executor.submit(gen_module, idx, node)
+                    for idx, node in enumerate(library_node_list)
                 }
 
+                concurrent.futures.wait(module_index_futures.values())
+                module_index = {
+                    name: module_future.result()
+                    for name, module_future in module_index_futures.items()
+                }
+
+        enumerate(library_node_list)
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
 
@@ -205,7 +240,7 @@ class BaseBlazeProjectGenerator(ABC):
             )
 
         serializable_module_index = {
-            key: {"file_count": len(value["files"]), "loc": value["loc"]}
+            key: {"file_count": len(value.files), "loc": value.loc}
             for key, value in module_index.items()
         }
 
@@ -223,8 +258,9 @@ class BaseBlazeProjectGenerator(ABC):
 
     def gen_app_main(self, app_node: ModuleNode, module_index: int):
         importing_module_name = app_node.deps[0].name
-        file_index = first_in_dict(module_index[importing_module_name]["files"])
-        language = module_index[importing_module_name]["language"]
+        module_result = module_index[importing_module_name]
+        file_index = first_in_dict(module_result.files)
+        language = module_result.language
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
         function_key = first_in_dict(class_index)[0]
@@ -239,27 +275,21 @@ class BaseBlazeProjectGenerator(ABC):
     # Library Generation
     def gen_lib_module(
         self,
-        module_index: dict[str, dict],
         module_node: ModuleNode,
+        deps: list[ModuleResult],
         loc_per_unit: int,
         language: Language,
-    ):
+    ) -> dict[str, FileResult]:
         deps = self.make_dep_list([i.name for i in module_node.deps])
         build_text = self.bzl_lib_template.format(
             module_node.name,
             deps=deps,
             **self.lib_build_kwargs(),
         )
-        # We now return a topologically sorted list of the graph which means that we will already have the
-        # deps of a module inside the module index before we process this one.  This allows us to reach into
-        # the generated sources for the dependencies in order to create an instance of their class and
-        # invoke their functions.
-        deps_from_index = [{n.name: module_index[n.name]} for n in module_node.deps]
 
         # Make Text
         gen = self.generators[language]
         file_count = gen.get_file_count(loc_per_unit, module_node)
-        files = gen.generate_souces(file_count, deps_from_index)
 
         # Make Module Directories
         module_dir_path = join(self.app_root, module_node.name)
@@ -272,13 +302,15 @@ class BaseBlazeProjectGenerator(ABC):
         self.write_file(build_path, build_text)
 
         # Write Swift Files
-        for file_name, file_obj in files.items():
-            file_path = join(files_dir_path, file_name)
+        module_node.extra_info = {}
+        for file_obj in gen.generate_sources(file_count, deps):
+            file_path = join(files_dir_path, file_obj.filename)
             self.write_file(file_path, file_obj.text)
             if self.reporter:
-                self.reporter.report_progress(file_obj.language, file_obj.text_line_count)
+                self.reporter.report_progress(
+                    file_obj.language, file_obj.text_line_count
+                )
             file_obj.text = ""  # Save memory after write
+            module_node.extra_info[file_obj.filename] = file_obj
 
-        module_node.extra_info = files
-
-        return files
+        return module_node.extra_info

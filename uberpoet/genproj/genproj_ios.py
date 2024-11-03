@@ -25,7 +25,10 @@ from uberpoet.commandlineutil import Graph
 
 from uberpoet.filegen import ProgressReporter
 
-def gen_ios_project(args, graph: Graph, pclbk: Callable[[Language, int, int], None]) -> dict:
+
+def gen_ios_project(
+    args, graph: Graph, pclbk: Callable[[Language, int, int], None]
+) -> dict:
     reporter = ProgressReporter(
         {
             Language.SWIFT: graph.config.swift_lines_of_code,
@@ -33,8 +36,8 @@ def gen_ios_project(args, graph: Graph, pclbk: Callable[[Language, int, int], No
         },
         pclbk,
     )
-    
-    gen = project_generator_for_arg(args, reporter)
+
+    gen = project_generator_for_arg(args, graph, reporter)
 
     logging.info("Project Generator type: %s", args.project_generator_type)
     logging.info("Generation type: %s", args.gen_type)
@@ -69,13 +72,14 @@ def gen_ios_project(args, graph: Graph, pclbk: Callable[[Language, int, int], No
     }
 
 
-def project_generator_for_arg(args, reporter: ProgressReporter):
+def project_generator_for_arg(args, graph: Graph, reporter: ProgressReporter):
     if args.project_generator_type == "buck" or args.project_generator_type == "bazel":
         if not args.blaze_module_path:
             raise ValueError(
                 "Must supply --blaze_module_path when using the Buck or Bazel generators."
             )
         return blazeprojectgen.IosBlazeProjectGenerator(
+            graph.config,
             args.output_directory,
             args.blaze_module_path,
             use_wmo=args.use_wmo,

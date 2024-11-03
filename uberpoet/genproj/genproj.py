@@ -23,7 +23,6 @@ import os
 import shutil
 from os.path import join
 from typing import Callable
-from tqdm import tqdm
 
 from uberpoet.commandlineutil import (
     validate_app_gen_options,
@@ -35,6 +34,8 @@ from uberpoet.filegen import Language
 
 from .genproj_ios import gen_ios_project
 from .genproj_java import gen_java_project
+
+
 class GenProjCommandLine(object):
     @staticmethod
     def make_args(args):
@@ -46,6 +47,37 @@ class GenProjCommandLine(object):
         args = parser.parse_args(args)
         validate_app_gen_options(args)
         return args
+
+    @staticmethod
+    def create_progress_fn():
+        def get_current_time_milli():
+            return int(round(time.time() * 1000))
+
+        last_millis = get_current_time_milli()
+        throttle_time_limit = 500
+        accumulate_lines_count = 0
+        accumulate_lines_count_total = 0
+
+        def progress_clbk(lang: Language, lines: int, total: int):
+            nonlocal last_millis
+            nonlocal throttle_time_limit
+            nonlocal accumulate_lines_count
+            nonlocal accumulate_lines_count_total
+            curr_millis = get_current_time_milli()
+
+            accumulate_lines_count += lines
+            accumulate_lines_count_total += lines
+            if (curr_millis - last_millis) < throttle_time_limit:
+                return
+
+            print(
+                "%s generated lines since last check: %s, total: %s"
+                % (lang.value, accumulate_lines_count, accumulate_lines_count_total)
+            )
+            last_millis = curr_millis
+            accumulate_lines_count = 0
+
+        return progress_clbk
 
     def main(self, args=None):
         if args is None:
@@ -68,13 +100,11 @@ class GenProjCommandLine(object):
 
         del_old_output_dir(args.output_directory)
 
-        with tqdm() as pbar:
-            def progress(lang, lines, total):
-                pbar.update(lines)
-                pbar.total = total
-                pbar.set_description(lang.value)
-
-            project_info = gen_project(args, graph, progress)
+        project_info = gen_project(
+            args,
+            graph,
+            GenProjCommandLine.create_progress_fn(),
+        )
 
         fin = time.time()
         logging.info("Done in %f s", fin - start)
@@ -87,7 +117,9 @@ class GenProjCommandLine(object):
             json.dump(project_info, project_info_json_file)
 
 
-def gen_project(args, graph: Graph, pclbk: Callable[[Language, int, int], None]) -> dict:
+def gen_project(
+    args, graph: Graph, pclbk: Callable[[Language, int, int], None]
+) -> dict:
     if args.command == "ios":
         return gen_ios_project(args, graph, pclbk)
     elif args.command == "java":

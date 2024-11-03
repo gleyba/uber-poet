@@ -22,7 +22,9 @@ from uberpoet.filegen import Language
 from uberpoet.commandlineutil import Graph
 
 
-def gen_java_project(args, graph: Graph, _pclbk: Callable[[Language, int, int], None]) -> dict:
+def gen_java_project(
+    args, graph: Graph, _pclbk: Callable[[Language, int, int], None]
+) -> dict:
     logging.info(
         "Creating a {} module count mock app in {}".format(
             len(graph.node_list), args.output_directory

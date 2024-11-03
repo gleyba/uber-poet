@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import
 
+import os
 import argparse
 
 from uberpoet.moduletree import ModuleGenType
@@ -21,6 +22,7 @@ from uberpoet.moduletree import ModuleGenType
 
 class BaseAppGenerationConfig(object):
     def pull_from_args(self, args):
+        self.concurrency = args.concurrency
         self.module_count = args.module_count
         self.big_module_count = args.big_module_count
         self.small_module_count = args.small_module_count
@@ -47,6 +49,12 @@ class BaseAppGenerationConfig(object):
             required=True,
             choices=ModuleGenType.enum_list(),
             help="What kind of mock app generation you want.  See layer_types.md for a description of graph types.",
+        )
+        parser.add_argument(
+            "--concurrency",
+            default=os.cpu_count(),
+            type=int,
+            help="Concurrent workers amount to generate modules",
         )
 
         app = parser.add_argument_group("Mock app generation options")
