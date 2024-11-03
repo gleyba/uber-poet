@@ -85,15 +85,15 @@ class ObjCGenerator(LanguageGenerator):
 
 class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
     BazelResources = {
-        "Info.plist": "App/Info.plist",
-        "mock_bazel_ios_workspace": "WORKSPACE.bazel",
+        "ios/Info.plist": "App/Info.plist",
+        "ios/mock_bazel_workspace": "WORKSPACE.bazel",
     }
     BazelResourceDirs = {
         "tools": "tools",
     }
     BuckResouces = {
-        "Info.plist": "App/Info.plist",
-        "mock_buck_config": ".buckconfig",
+        "ios/Info.plist": "App/Info.plist",
+        "ios/mock_buck_config": ".buckconfig",
     }
     BuckResourceDirs = {}
 
@@ -110,9 +110,9 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
             config=config,
             app_root=app_root,
             blaze_app_root=blaze_app_root,
-            bzl_lib_template="mock_{}_ios_libtemplate.bzl".format(flavor),
-            bzl_app_template="mock_{}_ios_apptemplate.bzl".format(flavor),
-            main_template="mock_ios_appdelegate",
+            bzl_lib_template="ios/mock_{}_libtemplate.bzl".format(flavor),
+            bzl_app_template="ios/mock_{}_apptemplate.bzl".format(flavor),
+            main_template="ios/mock_appdelegate",
             main_language=Language.SWIFT,
             generators=[SwiftGenerator(), ObjCGenerator()],
             main_file_name="AppDelegate.swift",

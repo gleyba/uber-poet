@@ -44,10 +44,10 @@ class CocoaPodsProjectGenerator(object):
         generate_multiple_pod_projects=False,
     ):
         self.app_root = app_root
-        self.pod_lib_template = self.load_resource("mockcplibtemplate.podspec")
-        self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
-        self.podfile_template = self.load_resource("mockpodfile")
-        self.app_delegate_template = self.load_resource("mockappdelegate")
+        self.pod_lib_template = self.load_resource("ios/mock_cplib_template.podspec")
+        self.pod_app_template = self.load_resource("ios/mock_cpapp_template.podspec")
+        self.podfile_template = self.load_resource("ios/mock_podfile")
+        self.app_delegate_template = self.load_resource("ios/mock_appdelegate")
         self.swift_gen = SwiftFileGenerator()
         self.objc_source_gen = ObjCSourceFileGenerator()
         self.objc_header_gen = ObjCHeaderFileGenerator()
@@ -152,7 +152,7 @@ class CocoaPodsProjectGenerator(object):
             "AppContainer.podspec": self.gen_app_podspec(app_node),
         }
 
-        self.copy_resource("Info.plist", join(app_module_dir, "Info.plist"))
+        self.copy_resource("ios/Info.plist", join(app_module_dir, "Info.plist"))
 
         for name, text in app_files.items():
             self.write_file(join(app_module_dir, name), text)

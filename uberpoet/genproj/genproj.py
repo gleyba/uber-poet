@@ -36,6 +36,46 @@ from .genproj_ios import gen_ios_project
 from .genproj_java import gen_java_project
 
 
+def get_current_time_milli():
+    return int(round(time.time() * 1000))
+
+
+class ProgressWorker:
+    def __init__(self):
+        self.lang = None
+        self.last_millis = get_current_time_milli()
+        self.throttle_time_limit = 500
+        self.accumulate_lines_count = 0
+        self.accumulate_lines_count_total = 0
+
+    def report(self, curr_millis=get_current_time_milli()):
+        if not self.lang:
+            return
+
+        print(
+            "%s generated lines since last check: %s, total: %s"
+            % (
+                self.lang.value,
+                self.accumulate_lines_count,
+                self.accumulate_lines_count_total,
+            )
+        )
+        self.last_millis = curr_millis
+        self.accumulate_lines_count = 0
+
+    def progress_clbk(self, lang: Language, lines: int, total: int):
+        curr_millis = get_current_time_milli()
+
+        self.lang = lang
+        self.accumulate_lines_count += lines
+        self.accumulate_lines_count_total += lines
+
+        if (curr_millis - self.last_millis) < self.throttle_time_limit:
+            return
+
+        self.report(curr_millis)
+
+
 class GenProjCommandLine(object):
     @staticmethod
     def make_args(args):
@@ -47,37 +87,6 @@ class GenProjCommandLine(object):
         args = parser.parse_args(args)
         validate_app_gen_options(args)
         return args
-
-    @staticmethod
-    def create_progress_fn():
-        def get_current_time_milli():
-            return int(round(time.time() * 1000))
-
-        last_millis = get_current_time_milli()
-        throttle_time_limit = 500
-        accumulate_lines_count = 0
-        accumulate_lines_count_total = 0
-
-        def progress_clbk(lang: Language, lines: int, total: int):
-            nonlocal last_millis
-            nonlocal throttle_time_limit
-            nonlocal accumulate_lines_count
-            nonlocal accumulate_lines_count_total
-            curr_millis = get_current_time_milli()
-
-            accumulate_lines_count += lines
-            accumulate_lines_count_total += lines
-            if (curr_millis - last_millis) < throttle_time_limit:
-                return
-
-            print(
-                "%s generated lines since last check: %s, total: %s"
-                % (lang.value, accumulate_lines_count, accumulate_lines_count_total)
-            )
-            last_millis = curr_millis
-            accumulate_lines_count = 0
-
-        return progress_clbk
 
     def main(self, args=None):
         if args is None:
@@ -100,11 +109,9 @@ class GenProjCommandLine(object):
 
         del_old_output_dir(args.output_directory)
 
-        project_info = gen_project(
-            args,
-            graph,
-            GenProjCommandLine.create_progress_fn(),
-        )
+        progress_worker = ProgressWorker()
+        project_info = gen_project(args, graph, progress_worker.progress_clbk)
+        progress_worker.report()
 
         fin = time.time()
         logging.info("Done in %f s", fin - start)
