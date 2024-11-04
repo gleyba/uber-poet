@@ -95,12 +95,11 @@ def get_func_call_template(from_language, to_language, function_type):
 
 def get_import_func_calls(from_language, import_list, indent=0):
     out = []
-    for i in import_list:
-        if type(i) is str:
+    for module in import_list:
+        if type(module) is str:
             continue
-        module = first_in_dict(i)
-        to_language = module["language"]
-        for file_result in module["files"].values():
+        to_language = module.language
+        for file_result in module.files.values():
             for class_num, class_funcs in file_result.classes.items():
                 for func_type, func_nums in class_funcs.items():
                     for func_num in func_nums:
@@ -133,8 +132,8 @@ class FuncType(object):
 
 
 class SwiftFileGenerator(FileGenerator):
-    def __init__(self):
-        self.gen_state = {}
+    def __init__(self, main_template: str):
+        self.main_template = main_template
 
     @staticmethod
     def language():
@@ -221,14 +220,17 @@ class SwiftFileGenerator(FileGenerator):
             class_nums,
         )
 
-    def gen_main(
-        self, template, importing_module_name, class_num, func_num, to_language
-    ):
-        import_line = "import {}".format(importing_module_name)
+    def gen_main(self, module_result: ModuleResult):
+        import_line = "import {}".format(module_result.name)
+        class_num, func_num = module_result.first_file().first_class_and_func()
         action_expr = get_func_call_template(
-            Language.SWIFT, to_language, FuncType.SWIFT_ONLY
+            Language.SWIFT,
+            module_result.language,
+            FuncType.SWIFT_ONLY,
         ).format(class_num, func_num)
         print_line = 'print("\\({})")'.format(action_expr)
-        return template.format(
-            uber_poet_header, import_line, print_line, Language.SWIFT
+        return self.main_template.format(
+            header=uber_poet_header,
+            imports=import_line,
+            body=print_line,
         )

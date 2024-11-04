@@ -24,15 +24,16 @@ from uberpoet.filegen import (
     SwiftFileGenerator,
 )
 from uberpoet.commandlineutil import BaseAppGenerationConfig
-from uberpoet.moduletree import ModuleNode
 from uberpoet.filegen import ModuleResult, ProgressReporter
+from uberpoet.moduletree import ModuleNode
 
 from .base_blazeprojectgen import BaseBlazeProjectGenerator, LanguageGenerator
 
 
 class SwiftGenerator(LanguageGenerator):
-    def __init__(self):
-        self.swift_gen = SwiftFileGenerator()
+    def __init__(self, main_template: str):
+        self.swift_gen = SwiftFileGenerator(main_template)
+        self.gen_main = self.swift_gen.gen_main
         super().__init__(
             Language.SWIFT,
             self.swift_gen.gen_file("dummy", 3, 3, []),
@@ -43,26 +44,21 @@ class SwiftGenerator(LanguageGenerator):
     ) -> Generator[FileResult, None, None]:
         for i in range(file_count):
             yield self.swift_gen.gen_file(
-                "File{}.swift".format(i), 3, 3, deps_from_index
+                "File{}.swift".format(i),
+                3,
+                3,
+                deps_from_index,
             )
         return
 
-    def gen_main(
-        self, template, importing_module_name, class_num, func_num, to_language
-    ):
-        return self.swift_gen.gen_main(
-            template, importing_module_name, class_num, func_num, to_language
-        )
-
 
 class ObjCGenerator(LanguageGenerator):
-    def __init__(
-        self,
-    ):
+    def __init__(self):
         self.objc_source_gen = ObjCSourceFileGenerator()
         self.objc_header_gen = ObjCHeaderFileGenerator()
         super().__init__(
-            Language.OBJC, self.objc_source_gen.gen_file("dummy", 3, 3, [])
+            Language.OBJC,
+            self.objc_source_gen.gen_file("dummy", 3, 3, []),
         )
 
     def generate_sources(
@@ -100,21 +96,19 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
     def __init__(
         self,
         config: BaseAppGenerationConfig,
-        app_root,
-        blaze_app_root,
         use_wmo=False,
         flavor="buck",
         reporter: ProgressReporter = None,
     ):
         super().__init__(
             config=config,
-            app_root=app_root,
-            blaze_app_root=blaze_app_root,
             bzl_lib_template="ios/mock_{}_libtemplate.bzl".format(flavor),
             bzl_app_template="ios/mock_{}_apptemplate.bzl".format(flavor),
-            main_template="ios/mock_appdelegate",
             main_language=Language.SWIFT,
-            generators=[SwiftGenerator(), ObjCGenerator()],
+            generators=[
+                SwiftGenerator(self.load_resource("ios/mock_appdelegate")),
+                ObjCGenerator(),
+            ],
             main_file_name="AppDelegate.swift",
             build_file_name="BUCK" if flavor == "buck" else "BUILD.bazel",
             src_dir_name="Sources",
@@ -126,7 +120,6 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
             else IosBlazeProjectGenerator.BazelResourceDirs,
             reporter=reporter,
         )
-
         self.use_wmo = use_wmo
         self.flavor = flavor
 
@@ -137,7 +130,12 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
             return "Use Tulsi or XCHammer to generate an Xcode project."
 
     def gen_app(
-        self, app_node, node_list, target_swift_loc, target_objc_loc, loc_json_file_path
+        self,
+        app_node: ModuleNode,
+        node_list: list[ModuleNode],
+        target_swift_loc: int,
+        target_objc_loc: int,
+        loc_json_file_path: str,
     ):
         super().gen_app(
             app_node,

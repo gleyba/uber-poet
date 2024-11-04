@@ -51,7 +51,6 @@ Generate a project using Buck:
 ```bash
 pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --project_generator_type "buck" \
-                        --blaze_module_path "/mockapp" \
                         --gen_type flat \
                         --swift_lines_of_code 150000
 ```
@@ -60,7 +59,6 @@ Generate a project using Bazel:
 ```bash
 pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --project_generator_type "bazel" \
-                        --blaze_module_path "/mockapp" \
                         --gen_type flat \
                         --swift_lines_of_code 150000
 ```

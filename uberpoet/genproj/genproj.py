@@ -23,6 +23,7 @@ import os
 import shutil
 from os.path import join
 from typing import Callable
+from threading import Lock
 
 from uberpoet.commandlineutil import (
     validate_app_gen_options,
@@ -42,13 +43,16 @@ def get_current_time_milli():
 
 class ProgressWorker:
     def __init__(self):
-        self.lang = None
         self.last_millis = get_current_time_milli()
-        self.throttle_time_limit = 500
+        self.throttle_time_limit = 4000
         self.accumulate_lines_count = 0
         self.accumulate_lines_count_total = 0
+        self.lock = Lock()
 
-    def report(self, curr_millis=get_current_time_milli()):
+    def report(self, curr_millis=get_current_time_milli(), lang=None):
+        if lang:
+            self.lang = lang
+
         if not self.lang:
             return
 
@@ -66,14 +70,16 @@ class ProgressWorker:
     def progress_clbk(self, lang: Language, lines: int, total: int):
         curr_millis = get_current_time_milli()
 
-        self.lang = lang
         self.accumulate_lines_count += lines
         self.accumulate_lines_count_total += lines
 
         if (curr_millis - self.last_millis) < self.throttle_time_limit:
             return
 
-        self.report(curr_millis)
+        with self.lock:
+            if (curr_millis - self.last_millis) < self.throttle_time_limit:
+                return
+            self.report(curr_millis, lang)
 
 
 class GenProjCommandLine(object):
@@ -130,7 +136,7 @@ def gen_project(
     if args.command == "ios":
         return gen_ios_project(args, graph, pclbk)
     elif args.command == "java":
-        return gen_java_project(args, graph, pclbk)
+        return gen_java_project(graph.config, graph, pclbk)
 
 
 def print_nodes(graph: Graph):

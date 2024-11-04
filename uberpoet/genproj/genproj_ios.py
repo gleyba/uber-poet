@@ -27,7 +27,9 @@ from uberpoet.filegen import ProgressReporter
 
 
 def gen_ios_project(
-    args, graph: Graph, pclbk: Callable[[Language, int, int], None]
+    args,
+    graph: Graph,
+    pclbk: Callable[[Language, int, int], None],
 ) -> dict:
     reporter = ProgressReporter(
         {
@@ -74,14 +76,8 @@ def gen_ios_project(
 
 def project_generator_for_arg(args, graph: Graph, reporter: ProgressReporter):
     if args.project_generator_type == "buck" or args.project_generator_type == "bazel":
-        if not args.blaze_module_path:
-            raise ValueError(
-                "Must supply --blaze_module_path when using the Buck or Bazel generators."
-            )
         return blazeprojectgen.IosBlazeProjectGenerator(
             graph.config,
-            args.output_directory,
-            args.blaze_module_path,
             use_wmo=args.use_wmo,
             flavor=args.project_generator_type,
             reporter=reporter,

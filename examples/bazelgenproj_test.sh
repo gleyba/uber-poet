@@ -27,7 +27,6 @@ pipenv install
 pipenv run $GIT_ROOT/genproj.py \
            --output_directory "$PROJECT_OUT" \
            --project_generator_type "bazel" \
-           --blaze_module_path "/mockapp" \
            --gen_type flat \
            --swift_lines_of_code 150000
 

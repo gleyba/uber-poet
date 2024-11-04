@@ -22,6 +22,8 @@ from uberpoet.moduletree import ModuleGenType
 
 class BaseAppGenerationConfig(object):
     def pull_from_args(self, args):
+        self.output_directory = args.output_directory
+        self.gen_type = args.gen_type
         self.concurrency = args.concurrency
         self.module_count = args.module_count
         self.big_module_count = args.big_module_count

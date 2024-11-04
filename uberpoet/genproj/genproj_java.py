@@ -20,14 +20,39 @@ from typing import Callable
 
 from uberpoet.filegen import Language
 from uberpoet.commandlineutil import Graph
+from uberpoet.filegen import ProgressReporter
+from uberpoet.commandlineutil import JavaAppGenerationConfig
+from uberpoet.blazeprojectgen import JavaBlazeProjectGenerator
 
 
 def gen_java_project(
-    args, graph: Graph, _pclbk: Callable[[Language, int, int], None]
+    config: JavaAppGenerationConfig,
+    graph: Graph,
+    pclbk: Callable[[Language, int, int], None],
 ) -> dict:
+    reporter = ProgressReporter(
+        {Language.JAVA: config.java_lines_of_code},
+        pclbk,
+    )
+    gen = JavaBlazeProjectGenerator(config, reporter)
+
     logging.info(
         "Creating a {} module count mock app in {}".format(
-            len(graph.node_list), args.output_directory
+            len(graph.node_list),
+            config.output_directory,
         )
     )
-    return {}
+
+    gen.gen_app(
+        graph.app_node,
+        graph.node_list,
+        {Language.JAVA: graph.config.java_lines_of_code},
+        graph.config.loc_json_file_path,
+    )
+
+    return {
+        "graph_config": config.gen_type,
+        "options": {
+            "java_lines_of_code": config.java_lines_of_code,
+        },
+    }

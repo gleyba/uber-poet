@@ -64,12 +64,6 @@ class IosAppGenerationConfig(BaseAppGenerationConfig):
             help="The project generator type to use.  Supported types are Buck, Bazel and CocoaPods. Default is `buck`",
         )
         parser.add_argument(
-            "-bmp",
-            "--blaze_module_path",
-            help="The root of the Buck or Bazel dependency path of the generated code.  Only used if Buck or Bazel "
-            "generator type is used.",
-        )
-        parser.add_argument(
             "-wmo",
             "--use_wmo",
             default=False,

@@ -45,7 +45,7 @@ class ModuleNode(object):
     APP = "APP"
     LIBRARY = "LIBRARY"
 
-    def __init__(self, name, node_type, deps=None):
+    def __init__(self, name: str, node_type: str, deps=None):
         super(ModuleNode, self).__init__()
         if deps is None:
             deps = []

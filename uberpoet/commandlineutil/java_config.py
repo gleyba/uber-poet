@@ -24,6 +24,8 @@ class JavaAppGenerationConfig(BaseAppGenerationConfig):
     def pull_from_args(self, args):
         self.validate_app_gen_options(args)
         BaseAppGenerationConfig.pull_from_args(self, args)
+        self.java_lines_of_code = args.java_lines_of_code
+        self.java_package = args.java_package
 
     @staticmethod
     def add_app_gen_options(parser: argparse.ArgumentParser):
@@ -34,6 +36,12 @@ class JavaAppGenerationConfig(BaseAppGenerationConfig):
                 default=1500000,  # 1.5 million lines of code
                 type=int,
                 help="Approximately how many lines of Java code each mock app should have.",
+            ),
+            java.add_argument(
+                "--java_package",
+                default="com.example",
+                type=str,
+                help="Base Java package to use in generated files.",
             ),
         )
 
