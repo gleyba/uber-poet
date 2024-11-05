@@ -14,4 +14,14 @@
 
 {header}
 
+package {package};
+
 {imports}
+
+class App {
+
+    public static void main (String[] args) {
+        {body}
+    }
+
+}

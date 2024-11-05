@@ -46,8 +46,7 @@ def gen_java_project(
     gen.gen_app(
         graph.app_node,
         graph.node_list,
-        {Language.JAVA: graph.config.java_lines_of_code},
-        graph.config.loc_json_file_path,
+        {Language.JAVA: config.java_lines_of_code},
     )
 
     return {

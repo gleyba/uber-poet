@@ -54,7 +54,7 @@ def gen_ios_project(
         )
     )
 
-    gen.gen_app(
+    gen.gen_ios_app(
         graph.app_node,
         graph.node_list,
         graph.config.swift_lines_of_code,

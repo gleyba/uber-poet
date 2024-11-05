@@ -29,6 +29,7 @@ from uberpoet.filegen import (
     ModuleResult,
     ProgressReporter,
 )
+from uberpoet.moduletree import ModuleNode
 from uberpoet.commandlineutil import JavaAppGenerationConfig
 
 
@@ -40,14 +41,19 @@ class JavaGenerator(LanguageGenerator):
         )
         super().__init__(
             Language.JAVA,
-            self.java_gen.gen_file("dummy", 3, 3, []),
+            self.java_gen.gen_file("test", "dummy", 3, 3, []),
         )
+        self.gen_main = self.java_gen.gen_main
 
     def generate_sources(
-        self, file_count: int, deps_from_index: list[ModuleResult]
+        self,
+        file_count: int,
+        module_node: ModuleNode,
+        deps_from_index: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         for i in range(file_count):
             yield self.java_gen.gen_file(
+                module_node.name,
                 "File{}.java".format(i),
                 3,
                 3,
@@ -69,7 +75,7 @@ class JavaBlazeProjectGenerator(BaseBlazeProjectGenerator):
                 JavaGenerator(
                     self.load_resource("java/mock_main_template.java"),
                     config.java_package,
-                )
+                ),
             ],
             main_file_name="App.java",
             build_file_name="BUILD.bazel",
@@ -81,8 +87,13 @@ class JavaBlazeProjectGenerator(BaseBlazeProjectGenerator):
             reporter=reporter,
         )
 
+    def example_command(self) -> str:
+        return ""
+
     def app_build_kwargs(self) -> dict[str, str]:
-        return {}
+        return {
+            "package": self.config.java_package,
+        }
 
     def lib_build_kwargs(self) -> dict[str, str]:
         return {}

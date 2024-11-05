@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-from uberpoet.util import first_in_dict, seed
+from uberpoet.util import seed
 
 from .filegen import *
 
@@ -201,7 +201,7 @@ class SwiftFileGenerator(FileGenerator):
         class_count: int,
         function_count: int,
         import_list: list[ModuleResult],
-    ):
+    ) -> FileResult:
         if import_list is None:
             import_list = []
         imports_out = "\n".join(

@@ -90,7 +90,10 @@ class FileResult(object):
     def first_class_and_func(self):
         class_key = first_key(self.classes)
         class_index = first_in_dict(self.classes)
-        function_key = first_in_dict(class_index)[0]
+        if type(class_index) == dict:
+            function_key = first_in_dict(class_index)[0]
+        elif type(class_index) == list:
+            function_key = class_index[0]
         return class_key, function_key
 
 

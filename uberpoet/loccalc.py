@@ -34,6 +34,8 @@ class LOCCalculator(object):
             extension = ".swift"
         elif language == Language.OBJC:
             extension = ".m"
+        elif language == Language.JAVA:
+            extension = ".java"
         else:
             raise ValueError("Unknown language: {}".format(language))
 

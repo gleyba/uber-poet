@@ -20,7 +20,7 @@
 load("@build_bazel_rules_ios//rules:framework.bzl", "apple_framework")
 
 apple_framework(
-    name = "{0}",
+    name = "{name}",
     srcs = glob([
         "Sources/**/*.h",
         "Sources/**/*.m",
@@ -37,6 +37,6 @@ apple_framework(
         "SWIFT_WHOLE_MODULE_OPTIMIZATION[config=Debug]": "{wmo}",
     }},
     deps = [
-        {deps}
+        {deps},
     ],
 )

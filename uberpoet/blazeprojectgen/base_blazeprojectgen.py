@@ -20,7 +20,7 @@ import shutil
 
 import concurrent.futures
 from abc import ABC, abstractmethod
-from os.path import basename, dirname, join
+from os.path import dirname, join
 from typing import Generator
 from threading import Lock
 
@@ -29,7 +29,7 @@ from uberpoet.commandlineutil import BaseAppGenerationConfig
 from uberpoet.filegen import Language, FileResult, ModuleResult, ProgressReporter
 from uberpoet.loccalc import LOCCalculator
 from uberpoet.moduletree import ModuleNode
-from uberpoet.util import first_in_dict, first_key, makedir
+from uberpoet.util import makedir
 
 
 class LanguageGenerator(ABC):
@@ -131,94 +131,9 @@ class BaseBlazeProjectGenerator(ABC):
     def lib_build_kwargs(self) -> dict[str, str]:
         return {}
 
-    # Generation Functions
-    def gen_app(
-        self,
-        app_node: ModuleNode,
-        node_list: list[ModuleNode],
-        lang_loc: dict[Language, int],
-        loc_json_file_path: str,
+    def gen_app_from_module_index(
+        self, app_node: ModuleNode, module_index: dict[str, ModuleResult]
     ):
-        library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
-
-        if loc_json_file_path:
-            loc_reader = locreader.LocFileReader()
-            loc_reader.read_loc_file(loc_json_file_path)
-            module_index = {}
-            for n in library_node_list:
-                loc = loc_reader.loc_for_module(n.name)
-                language = loc_reader.language_for_module(n.name)
-                files = self.gen_lib_module(module_index, n, loc, language)
-                module_index[n.name] = ModuleResult(
-                    name=n.name,
-                    files=files,
-                    loc=loc,
-                    language=language,
-                )
-        else:
-            total_code_units = 0
-            for l in library_node_list:
-                total_code_units += l.code_units
-
-            total_loc = sum(lang_loc.values())
-            module_count_percentage = {
-                language: round(float(loc) / total_loc, 2)
-                for language, loc in lang_loc.items()
-            }
-            loc_per_unit = total_loc / total_code_units
-            max_lang_index = {
-                language: math.ceil((len(library_node_list) * percentage))
-                for language, percentage in module_count_percentage.items()
-            }
-
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.concurrency
-            ) as executor:
-                module_index_futures = {}
-                module_index_futures_lock = Lock()
-
-                def gen_module(idx, module):
-                    nonlocal module_index_futures
-                    nonlocal module_index_futures_lock
-                    language = None
-                    for cur_language, max_index in max_lang_index.items():
-                        language = cur_language
-                        if idx < max_index:
-                            break
-
-                    with module_index_futures_lock:
-                        deps_futures = [
-                            module_index_futures.get(dep.name) for dep in module.deps
-                        ]
-
-                    deps = [d.result() for d in deps_futures]
-
-                    files = self.gen_lib_module(module, deps, loc_per_unit, language)
-
-                    return ModuleResult(
-                        name=module.name,
-                        files=files,
-                        loc=loc_per_unit,
-                        language=language,
-                    )
-
-                # We now return a topologically sorted list of the graph which means that we will already have the
-                # deps of a module inside the module index before we process this one.  This allows us to reach into
-                # the generated sources for the dependencies in order to create an instance of their class and
-                # invoke their functions.
-                with module_index_futures_lock:
-                    module_index_futures = {
-                        node.name: executor.submit(gen_module, idx, node)
-                        for idx, node in enumerate(library_node_list)
-                    }
-
-                concurrent.futures.wait(module_index_futures.values())
-                module_index = {
-                    name: module_future.result()
-                    for name, module_future in module_index_futures.items()
-                }
-
-        enumerate(library_node_list)
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
 
@@ -236,12 +151,6 @@ class BaseBlazeProjectGenerator(ABC):
         for name, text in app_files.items():
             self.write_file(join(app_module_dir, name), text)
 
-        if loc_json_file_path:
-            # Copy the LOC file into the generated project.
-            shutil.copyfile(
-                loc_json_file_path, join(self.app_root, basename(loc_json_file_path))
-            )
-
         serializable_module_index = {
             key: {"file_count": len(value.files), "loc": value.loc}
             for key, value in module_index.items()
@@ -251,6 +160,79 @@ class BaseBlazeProjectGenerator(ABC):
             join(self.app_root, "module_index.json"), "w"
         ) as module_index_json_file:
             json.dump(serializable_module_index, module_index_json_file)
+
+    # Generation Functions
+    def gen_app(
+        self,
+        app_node: ModuleNode,
+        node_list: list[ModuleNode],
+        lang_loc: dict[Language, int],
+    ):
+        library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
+
+        total_code_units = 0
+        for l in library_node_list:
+            total_code_units += l.code_units
+
+        total_loc = sum(lang_loc.values())
+        module_count_percentage = {
+            language: round(float(loc) / total_loc, 2)
+            for language, loc in lang_loc.items()
+        }
+        loc_per_unit = total_loc / total_code_units
+        max_lang_index = {
+            language: math.ceil((len(library_node_list) * percentage))
+            for language, percentage in module_count_percentage.items()
+        }
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.concurrency
+        ) as executor:
+            module_index_futures = {}
+            module_index_futures_lock = Lock()
+
+            def gen_module(idx, module):
+                nonlocal module_index_futures
+                nonlocal module_index_futures_lock
+                language = None
+                for cur_language, max_index in max_lang_index.items():
+                    language = cur_language
+                    if idx < max_index:
+                        break
+
+                with module_index_futures_lock:
+                    deps_futures = [
+                        module_index_futures.get(dep.name) for dep in module.deps
+                    ]
+
+                deps = [d.result() for d in deps_futures]
+
+                files = self.gen_lib_module(module, deps, loc_per_unit, language)
+
+                return ModuleResult(
+                    name=module.name,
+                    files=files,
+                    loc=loc_per_unit,
+                    language=language,
+                )
+
+            # We now return a topologically sorted list of the graph which means that we will already have the
+            # deps of a module inside the module index before we process this one.  This allows us to reach into
+            # the generated sources for the dependencies in order to create an instance of their class and
+            # invoke their functions.
+            with module_index_futures_lock:
+                module_index_futures = {
+                    node.name: executor.submit(gen_module, idx, node)
+                    for idx, node in enumerate(library_node_list)
+                }
+
+            concurrent.futures.wait(module_index_futures.values())
+            module_index = {
+                name: module_future.result()
+                for name, module_future in module_index_futures.items()
+            }
+
+        self.gen_app_from_module_index(app_node, module_index)
 
     def gen_app_build(self, app_node: ModuleNode):
         module_dep_list = self.make_dep_list([i.name for i in app_node.deps])
@@ -274,7 +256,7 @@ class BaseBlazeProjectGenerator(ABC):
     ) -> dict[str, FileResult]:
         deps = self.make_dep_list([i.name for i in module_node.deps])
         build_text = self.bzl_lib_template.format(
-            module_node.name,
+            name=module_node.name,
             deps=deps,
             **self.lib_build_kwargs(),
         )
@@ -295,7 +277,7 @@ class BaseBlazeProjectGenerator(ABC):
 
         # Write Swift Files
         module_node.extra_info = {}
-        for file_obj in gen.generate_sources(file_count, dep_modules):
+        for file_obj in gen.generate_sources(file_count, module_node, dep_modules):
             file_path = join(files_dir_path, file_obj.filename)
             self.write_file(file_path, file_obj.text)
             if self.reporter:

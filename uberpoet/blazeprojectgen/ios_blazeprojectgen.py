@@ -15,7 +15,10 @@
 from __future__ import absolute_import
 
 from typing import Generator
+from os.path import basename, join
+import shutil
 
+from uberpoet import locreader
 from uberpoet.filegen import (
     FileResult,
     Language,
@@ -40,7 +43,10 @@ class SwiftGenerator(LanguageGenerator):
         )
 
     def generate_sources(
-        self, file_count: int, deps_from_index: list[ModuleResult]
+        self,
+        file_count: int,
+        _: ModuleNode,
+        deps_from_index: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         for i in range(file_count):
             yield self.swift_gen.gen_file(
@@ -62,7 +68,10 @@ class ObjCGenerator(LanguageGenerator):
         )
 
     def generate_sources(
-        self, file_count: int, deps_from_index: list[ModuleResult]
+        self,
+        file_count: int,
+        _: ModuleNode,
+        deps_from_index: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         for i in range(file_count):
             objc_source_file = self.objc_source_gen.gen_file(
@@ -129,7 +138,7 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
         elif self.flavor == "bazel":
             return "Use Tulsi or XCHammer to generate an Xcode project."
 
-    def gen_app(
+    def gen_ios_app(
         self,
         app_node: ModuleNode,
         node_list: list[ModuleNode],
@@ -137,12 +146,40 @@ class IosBlazeProjectGenerator(BaseBlazeProjectGenerator):
         target_objc_loc: int,
         loc_json_file_path: str,
     ):
-        super().gen_app(
-            app_node,
-            node_list,
-            {Language.SWIFT: target_swift_loc, Language.OBJC: target_objc_loc},
-            loc_json_file_path,
-        )
+        if loc_json_file_path:
+            library_node_list = [
+                n for n in node_list if n.node_type == ModuleNode.LIBRARY
+            ]
+            loc_reader = locreader.LocFileReader()
+            loc_reader.read_loc_file(loc_json_file_path)
+            module_index = {}
+            for n in library_node_list:
+                loc = loc_reader.loc_for_module(n.name)
+                language = loc_reader.language_for_module(n.name)
+                files = self.gen_lib_module(module_index, n, loc, language)
+                module_index[n.name] = ModuleResult(
+                    name=n.name,
+                    files=files,
+                    loc=loc,
+                    language=language,
+                )
+
+            self.gen_app_from_module_index(app_node, module_index)
+
+            # Copy the LOC file into the generated project.
+            shutil.copyfile(
+                loc_json_file_path,
+                join(self.app_root, basename(loc_json_file_path)),
+            )
+        else:
+            super().gen_app(
+                app_node,
+                node_list,
+                {
+                    Language.SWIFT: target_swift_loc,
+                    Language.OBJC: target_objc_loc,
+                },
+            )
 
     def app_build_kwargs(self) -> dict[str, str]:
         return {"wmo": "YES" if self.use_wmo else "NO"}
