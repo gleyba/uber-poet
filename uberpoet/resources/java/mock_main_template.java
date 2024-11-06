@@ -18,10 +18,10 @@ package {package};
 
 {imports}
 
-class App {
+class App {{
 
-    public static void main (String[] args) {
+    public static void main (String[] args) {{
         {body}
-    }
+    }}
 
-}
+}}

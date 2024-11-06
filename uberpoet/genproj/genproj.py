@@ -48,6 +48,7 @@ class ProgressWorker:
         self.accumulate_lines_count = 0
         self.accumulate_lines_count_total = 0
         self.lock = Lock()
+        self.lang = None
 
     def report(self, curr_millis=get_current_time_milli(), lang=None):
         if lang:

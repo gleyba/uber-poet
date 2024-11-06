@@ -18,7 +18,7 @@ from uberpoet.util import seed
 
 from .filegen import *
 
-java_func_call_template = """{0}.MyClass{1}.complexCrap{2}(4, 2)"""
+java_func_call_template = """new MyClass{0}().complexCrap{1}(4, 2)"""
 
 java_func_template = """
 public int complexCrap{0}(int arg, Object stuff) {{
@@ -29,19 +29,19 @@ public int complexCrap{0}(int arg, Object stuff) {{
 }}"""
 
 java_class_template = """
-public class Myclass{0} {{
-
-    public int x;
-    public String y;
-
-    public Myclass{0} () {{
-        x = 7;
-        y = "hi";
-        {2}
-    }}
-
-    {1}
-}}"""
+    public static class MyClass{0} {{
+    
+        public int x;
+        public String y;
+    
+        public MyClass{0} () {{
+            x = 7;
+            y = "hi";
+{2}
+        }}
+    
+        {1}
+    }}"""
 
 
 class JavaFileGenerator(FileGenerator):
@@ -73,18 +73,8 @@ class JavaFileGenerator(FileGenerator):
             for file_result in module.files.values():
                 for class_num, func_nums in file_result.classes.items():
                     for func_num in func_nums:
-                        text = java_func_call_template.format(
-                            "%s.%s"
-                            % (
-                                module.name,
-                                file_result.filename,
-                            ),
-                            class_num,
-                            func_num,
-                        )
-                        indented_text = "\n".join(
-                            " " * indent + line for line in text.splitlines()
-                        )
+                        text = java_func_call_template.format(class_num, func_num)
+                        indented_text = " " * indent + text + ";"
                         out.append(indented_text)
 
         return "\n".join(out)
@@ -124,7 +114,7 @@ class JavaFileGenerator(FileGenerator):
     def gen_file(
         self,
         module_name: str,
-        file_name: str,
+        file_idx: int,
         class_count: int,
         function_count: int,
         import_list: list[ModuleResult | str],
@@ -132,21 +122,36 @@ class JavaFileGenerator(FileGenerator):
         if import_list is None:
             import_list = []
 
-        package_out = "package {}.{};".format(
+        package_out = "package {}.{};\n".format(
             self.java_package,
             module_name,
         )
 
-        imports_out = "\n".join(
-            [
-                "import {}.{};".format(
-                    self.java_package, i if type(i) is str else i.name
+        imports_out = []
+        for module in import_list:
+            if type(module) is str:
+                imports_out.append(
+                    "import {}.{};\n".format(
+                        self.java_package,
+                        module,
+                    )
                 )
-                for i in import_list
-            ]
-        )
+                continue
 
-        class_start_out = "public class {} {{".format(file_name)
+            for file_result in module.files.values():
+                for class_num in file_result.classes.keys():
+                    imports_out.append(
+                        "import {}.{}.{}.MyClass{};".format(
+                            self.java_package,
+                            module.name,
+                            file_result.basename(),
+                            class_num,
+                        )
+                    )
+
+        imports_out = "{}\n".format("\n".join(imports_out))
+
+        class_start_out = "public class File{} {{".format(file_idx)
 
         func_out, func_nums = self.gen_func(function_count, "7", 4)
         class_out, class_nums = self.gen_class(class_count, 5, import_list)
@@ -164,7 +169,7 @@ class JavaFileGenerator(FileGenerator):
         ]
 
         return FileResult(
-            file_name,
+            "File{}.java".format(file_idx),
             Language.JAVA,
             "\n".join(chunks),
             func_nums,
@@ -175,17 +180,19 @@ class JavaFileGenerator(FileGenerator):
         file = module_result.first_file()
         class_num, func_num = file.first_class_and_func()
         action_expr = java_func_call_template.format(
-            file.filename,
             class_num,
             func_num,
         )
+        imports = "import {}.{}.{}.MyClass{};".format(
+            self.java_package,
+            module_result.name,
+            file.basename(),
+            class_num,
+        )
+        body = "System.out.println({});".format(action_expr)
         return self.main_template.format(
             header=uber_poet_header,
-            imports="import {}.{}.{};".format(
-                self.java_package,
-                module_result.name,
-                file.filename,
-            ),
+            imports=imports,
             package=self.java_package,
-            body="System.out.println({});".format(action_expr),
+            body=body,
         )

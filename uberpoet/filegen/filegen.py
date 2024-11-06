@@ -87,6 +87,9 @@ class FileResult(object):
             self.classes,
         )
 
+    def basename(self):
+        return self.filename.split(".")[0]
+
     def first_class_and_func(self):
         class_key = first_key(self.classes)
         class_index = first_in_dict(self.classes)

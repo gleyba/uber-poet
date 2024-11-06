@@ -17,10 +17,10 @@
 load("@rules_java//java:defs.bzl", "java_binary")
 
 java_binary(
-    name = "app",
-    srcs = glob(["src/**/*.java"],
+    name = "App",
+    srcs = ["App.java"],
     main_class = "{package}.App",
     deps = [
-        {deps}
+        {deps},
     ],
 )

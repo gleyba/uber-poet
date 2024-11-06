@@ -51,10 +51,10 @@ class JavaGenerator(LanguageGenerator):
         module_node: ModuleNode,
         deps_from_index: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
-        for i in range(file_count):
+        for file_idx in range(file_count):
             yield self.java_gen.gen_file(
                 module_node.name,
-                "File{}.java".format(i),
+                file_idx,
                 3,
                 3,
                 deps_from_index,

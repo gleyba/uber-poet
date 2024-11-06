@@ -24,7 +24,6 @@ from os.path import dirname, join
 from typing import Generator
 from threading import Lock
 
-from uberpoet import locreader
 from uberpoet.commandlineutil import BaseAppGenerationConfig
 from uberpoet.filegen import Language, FileResult, ModuleResult, ProgressReporter
 from uberpoet.loccalc import LOCCalculator
@@ -79,6 +78,7 @@ class BaseBlazeProjectGenerator(ABC):
         resource_dirs: dict[str, str],
         reporter: ProgressReporter,
     ):
+        self.config = config
         self.app_root = config.output_directory
         self.bzl_lib_template = self.load_resource(bzl_lib_template)
         self.bzl_app_template = self.load_resource(bzl_app_template)
