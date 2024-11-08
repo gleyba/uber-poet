@@ -15,12 +15,13 @@
 from __future__ import absolute_import
 
 from abc import ABC
-
 from dataclasses import dataclass
+
 from uberpoet.util import (
     classproperty,
     first_key,
     first_in_dict,
+    seed,
 )
 
 uber_poet_header = """
@@ -70,6 +71,23 @@ class Language(object):
         return hash(self.value)
 
 
+@dataclass
+class ClassSpec:
+    key: int
+    func_keys: list[int]
+
+
+class FileSpec(object):
+    def __init__(self, file_idx: int, class_count: int, function_count: int):
+        self.file_idx = file_idx
+        self.funcs = [seed() for _ in range(function_count)]
+        self.classes = [
+            ClassSpec(seed(), [seed() for _ in range(function_count)])
+            for _ in range(class_count)
+        ]
+        self.imports_count = class_count * function_count
+
+
 class FileResult(object):
     def __init__(self, filename: str, language: Language, text, functions, classes):
         super(FileResult, self).__init__()
@@ -91,12 +109,14 @@ class FileResult(object):
         return self.filename.split(".")[0]
 
     def first_class_and_func(self):
-        class_key = first_key(self.classes)
-        class_index = first_in_dict(self.classes)
-        if type(class_index) == dict:
+        if type(self.classes) == dict:
+            class_key = first_key(self.classes)
+            class_index = first_in_dict(self.classes)
             function_key = first_in_dict(class_index)[0]
-        elif type(class_index) == list:
-            function_key = class_index[0]
+        elif type(self.classes) == FileSpec:
+            class_key = self.classes.classes[0].key
+            function_key = self.classes.classes[0].func_keys[0]
+
         return class_key, function_key
 
 

@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 
 from typing import Generator
+from copy import deepcopy
 
 from .base_blazeprojectgen import (
     BaseBlazeProjectGenerator,
@@ -26,22 +27,47 @@ from uberpoet.filegen import (
     JavaFileGenerator,
 )
 from uberpoet.filegen import (
+    FileSpec,
     ModuleResult,
     ProgressReporter,
 )
+from uberpoet.filegen.imports_selector import (
+    ImportsSelectorImpl,
+    ImportsSelectorDummy,
+)
+
 from uberpoet.moduletree import ModuleNode
 from uberpoet.commandlineutil import JavaAppGenerationConfig
 
 
 class JavaGenerator(LanguageGenerator):
-    def __init__(self, main_template: str, java_package: str):
+    def __init__(
+        self,
+        main_template: str,
+        java_package: str,
+        class_per_file_count=3,
+        func_per_class_count=3,
+        inner_imports_count=12,
+        external_imports_count=48,
+    ):
         self.java_gen = JavaFileGenerator(
             main_template,
             java_package,
         )
+        self.class_count = class_per_file_count
+        self.func_count = func_per_class_count
+        self.inner_imports_count = inner_imports_count
+        self.external_imports_count = external_imports_count
         super().__init__(
             Language.JAVA,
-            self.java_gen.gen_file("test", "dummy", 3, 3, []),
+            self.java_gen.gen_file(
+                "test",
+                FileSpec(0, class_per_file_count, func_per_class_count),
+                ImportsSelectorDummy(
+                    inner_imports_count,
+                    external_imports_count,
+                ),
+            ),
         )
         self.gen_main = self.java_gen.gen_main
 
@@ -49,15 +75,28 @@ class JavaGenerator(LanguageGenerator):
         self,
         file_count: int,
         module_node: ModuleNode,
-        deps_from_index: list[ModuleResult],
+        deps_modules: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
-        for file_idx in range(file_count):
+        file_specs = [
+            FileSpec(
+                file_idx,
+                self.class_count,
+                self.func_count,
+            )
+            for file_idx in range(file_count)
+        ]
+
+        for file_spec in file_specs:
             yield self.java_gen.gen_file(
                 module_node.name,
-                file_idx,
-                3,
-                3,
-                deps_from_index,
+                file_spec,
+                file_specs,
+                ImportsSelectorImpl(
+                    deepcopy(file_specs),
+                    self.inner_imports_count,
+                    deepcopy(deps_modules),
+                    self.external_imports_count,
+                ),
             )
         return
 

@@ -17,8 +17,15 @@ from __future__ import absolute_import
 from uberpoet.util import seed
 
 from .filegen import *
+from .imports_selector import (
+    ClassKey,
+    ImportsSelector,
+)
 
-java_func_call_template = """new MyClass{0}().complexCrap{1}(4, 2)"""
+java_inner_func_call_template = (
+    """{0}new File{1}.MyClass{2}().complexCrap{3}(1, 3){4}"""
+)
+java_external_func_call_template = """{0}new MyClass{1}().complexCrap{2}(4, 2){3}"""
 
 java_func_template = """
 public int complexCrap{0}(int arg, Object stuff) {{
@@ -51,137 +58,140 @@ class JavaFileGenerator(FileGenerator):
         self.java_package = java_package
 
     @staticmethod
-    def gen_func(function_count, var_name, indent=0):
+    def gen_func(
+        functions: list[int],
+        var_name: str,
+        indent=0,
+    ) -> list[str]:
         out = []
-        nums = []
 
-        for _ in range(function_count):
-            num = seed()
+        for num in functions:
             text = java_func_template.format(num, var_name)
             indented_text = "\n".join(" " * indent + line for line in text.splitlines())
-            nums.append(num)
             out.append(indented_text)
 
-        return "\n".join(out), nums
-
-    def get_import_func_calls(self, import_list: list[ModuleResult | str], indent=0):
-        out = []
-        for module in import_list:
-            if type(module) is str:
-                continue
-
-            for file_result in module.files.values():
-                for class_num, func_nums in file_result.classes.items():
-                    for func_num in func_nums:
-                        text = java_func_call_template.format(class_num, func_num)
-                        indented_text = " " * indent + text + ";"
-                        out.append(indented_text)
-
-        return "\n".join(out)
+        return out
 
     def gen_class(
         self,
-        class_count: int,
-        func_per_class_count: int,
-        import_list: list[ModuleResult | str],
-    ) -> str:
+        file_spec: FileSpec,
+        imports_selector: ImportsSelector,
+    ) -> tuple[list[str], set[str]]:
         out = []
-        class_nums = {}
+        external_imports = set()
 
-        for _ in range(class_count):
-            num = seed()
-            func_out, func_nums = self.gen_func(
-                func_per_class_count,
+        for class_spec in file_spec.classes:
+            num = class_spec.key
+            func_out = self.gen_func(
+                class_spec.func_keys,
                 "x",
                 indent=8,
             )
-            func_call_out = self.get_import_func_calls(
-                import_list,
-                indent=12,
-            )
+            func_call_out = []
+            caller_key = ClassKey(file_spec.file_idx, class_spec.key)
+            inner_imports_result = imports_selector.get_inner_imports(caller_key)
+            for (
+                file_idx,
+                class_to_functions,
+            ) in inner_imports_result.file_to_classes.items():
+                for class_idx, funcs in class_to_functions.items():
+                    for func_idx in funcs:
+                        func_call_out.append(
+                            java_inner_func_call_template.format(
+                                " " * 12,
+                                file_idx,
+                                class_idx,
+                                func_idx,
+                                ";",
+                            )
+                        )
+            external_imports_result = imports_selector.get_external_imports()
+            for (
+                module_name,
+                inner_imports,
+            ) in external_imports_result.module_to_inner_imports.items():
+                for (
+                    file_idx,
+                    class_to_functions,
+                ) in inner_imports.file_to_classes.items():
+                    for class_idx, funcs in class_to_functions.items():
+                        external_imports.add(
+                            "{}.File{}.MyClass{}".format(
+                                module_name,
+                                file_idx,
+                                class_idx,
+                            )
+                        )
+                        func_call_out.append(
+                            java_external_func_call_template.format(
+                                " " * 12,
+                                class_idx,
+                                func_idx,
+                                ";",
+                            )
+                        )
+
             out.append(
                 java_class_template.format(
                     num,
-                    func_out,
-                    func_call_out,
+                    "\n".join(func_out),
+                    "\n".join(func_call_out),
                 )
             )
 
-            class_nums[num] = func_nums
-
-        return "\n".join(out), class_nums
+        return out, external_imports
 
     def gen_file(
         self,
         module_name: str,
-        file_idx: int,
-        class_count: int,
-        function_count: int,
-        import_list: list[ModuleResult | str],
+        file_spec: FileSpec,
+        imports: ImportsSelector,
     ) -> FileResult:
-        if import_list is None:
-            import_list = []
+        external_imports = imports.get_external_imports()
 
-        package_out = "package {}.{};\n".format(
-            self.java_package,
-            module_name,
-        )
-
-        imports_out = []
-        for module in import_list:
-            if type(module) is str:
-                imports_out.append(
-                    "import {}.{};\n".format(
-                        self.java_package,
-                        module,
-                    )
+        funcs_out = self.gen_func(3, "7", 4)
+        class_out, external_imports = self.gen_class(file_spec, imports)
+        chunks = (
+            [
+                uber_poet_header,
+                "package {}.{};\n".format(
+                    self.java_package,
+                    module_name,
+                ),
+            ]
+            + [
+                "import {}.{};".format(
+                    self.java_package,
+                    import_str,
                 )
-                continue
-
-            for file_result in module.files.values():
-                for class_num in file_result.classes.keys():
-                    imports_out.append(
-                        "import {}.{}.{}.MyClass{};".format(
-                            self.java_package,
-                            module.name,
-                            file_result.basename(),
-                            class_num,
-                        )
-                    )
-
-        imports_out = "{}\n".format("\n".join(imports_out))
-
-        class_start_out = "public class File{} {{".format(file_idx)
-
-        func_out, func_nums = self.gen_func(function_count, "7", 4)
-        class_out, class_nums = self.gen_class(class_count, 5, import_list)
-
-        class_end_out = "}"
-
-        chunks = [
-            uber_poet_header,
-            package_out,
-            imports_out,
-            class_start_out,
-            func_out,
-            class_out,
-            class_end_out,
-        ]
+                for import_str in external_imports
+            ]
+            + [
+                "public class File{} {{".format(file_spec.file_idx),
+            ]
+            + funcs_out
+            + class_out
+            + [
+                "}",
+            ]
+        )
 
         return FileResult(
             "File{}.java".format(file_idx),
             Language.JAVA,
             "\n".join(chunks),
-            func_nums,
-            class_nums,
+            file_spec.funcs,
+            file_spec,
         )
 
     def gen_main(self, module_result: ModuleResult):
         file = module_result.first_file()
         class_num, func_num = file.first_class_and_func()
-        action_expr = java_func_call_template.format(
+        action_expr = java_external_func_call_template.format(
+            "",
             class_num,
             func_num,
+            "",
         )
         imports = "import {}.{}.{}.MyClass{};".format(
             self.java_package,
