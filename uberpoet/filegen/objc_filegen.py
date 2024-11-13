@@ -87,7 +87,7 @@ class ObjCHeaderFileGenerator(FileGenerator):
 
     def get_header(self, objc_class):
         out = []
-        class_nums = {}
+        class_nums = []
 
         for c in objc_class.classes:
             num = c
@@ -95,7 +95,13 @@ class ObjCHeaderFileGenerator(FileGenerator):
                 objc_class.classes[c][FuncType.OBJC_FRIENDLY]
             )
             out.append(objc_header_template.format(num, func_out))
-            class_nums[num] = {FuncType.OBJC_FRIENDLY: func_nums}
+            class_nums.append(
+                ClassSpec(
+                    key=c,
+                    func_keys=func_nums,
+                    typed_func_keys={FuncType.OBJC_FRIENDLY: func_nums},
+                )
+            )
 
         return "\n".join(out), class_nums
 
@@ -104,7 +110,12 @@ class ObjCHeaderFileGenerator(FileGenerator):
 
         chunks = [uber_poet_header, objc_system_import_template, class_out]
 
-        return FileResult(filename, Language.OBJC, "\n".join(chunks), [], class_nums)
+        return FileResult(
+            filename,
+            Language.OBJC,
+            "\n".join(chunks),
+            FileSpec(-1, [], class_nums),
+        )
 
 
 class ObjCSourceFileGenerator(FileGenerator):
@@ -131,7 +142,7 @@ class ObjCSourceFileGenerator(FileGenerator):
 
     def gen_class(self, class_count, func_per_class_count, import_list):
         out = []
-        class_nums = {}
+        class_nums = []
 
         for _ in range(class_count):
             num = seed()
@@ -140,7 +151,13 @@ class ObjCSourceFileGenerator(FileGenerator):
                 self.language(), import_list, indent=4
             )
             out.append(objc_source_template.format(num, func_out, func_call_out))
-            class_nums[num] = {FuncType.OBJC_FRIENDLY: func_nums}
+            class_nums.append(
+                ClassSpec(
+                    key=num,
+                    func_keys=func_nums,
+                    typed_func_keys={str(FuncType.OBJC_FRIENDLY): func_nums},
+                )
+            )
 
         return "\n".join(out), class_nums
 
@@ -164,4 +181,9 @@ class ObjCSourceFileGenerator(FileGenerator):
 
         chunks = [uber_poet_header, objc_system_import_template, imports_out, class_out]
 
-        return FileResult(filename, Language.OBJC, "\n".join(chunks), [], class_nums)
+        return FileResult(
+            filename,
+            Language.OBJC,
+            "\n".join(chunks),
+            FileSpec(-1, [], class_nums),
+        )

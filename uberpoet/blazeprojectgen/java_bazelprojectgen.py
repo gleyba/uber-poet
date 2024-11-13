@@ -62,7 +62,11 @@ class JavaGenerator(LanguageGenerator):
             Language.JAVA,
             self.java_gen.gen_file(
                 "test",
-                FileSpec(0, class_per_file_count, func_per_class_count),
+                FileSpec.new_with_seed(
+                    0,
+                    class_per_file_count,
+                    func_per_class_count,
+                ),
                 ImportsSelectorDummy(
                     inner_imports_count,
                     external_imports_count,
@@ -78,7 +82,7 @@ class JavaGenerator(LanguageGenerator):
         deps_modules: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         file_specs = [
-            FileSpec(
+            FileSpec.new_with_seed(
                 file_idx,
                 self.class_count,
                 self.func_count,
@@ -90,7 +94,6 @@ class JavaGenerator(LanguageGenerator):
             yield self.java_gen.gen_file(
                 module_node.name,
                 file_spec,
-                file_specs,
                 ImportsSelectorImpl(
                     deepcopy(file_specs),
                     self.inner_imports_count,

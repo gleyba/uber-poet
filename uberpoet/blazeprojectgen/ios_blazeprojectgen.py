@@ -46,14 +46,14 @@ class SwiftGenerator(LanguageGenerator):
         self,
         file_count: int,
         _: ModuleNode,
-        deps_from_index: list[ModuleResult],
+        deps_modules: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         for i in range(file_count):
             yield self.swift_gen.gen_file(
                 "File{}.swift".format(i),
                 3,
                 3,
-                deps_from_index,
+                deps_modules,
             )
         return
 
@@ -71,14 +71,14 @@ class ObjCGenerator(LanguageGenerator):
         self,
         file_count: int,
         _: ModuleNode,
-        deps_from_index: list[ModuleResult],
+        deps_modules: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         for i in range(file_count):
             objc_source_file = self.objc_source_gen.gen_file(
                 "File{}.m".format(i),
                 3,
                 3,
-                deps_from_index + ["File{}.h".format(i)],
+                deps_modules + ["File{}.h".format(i)],
             )
             yield objc_source_file
             yield self.objc_header_gen.gen_file(

@@ -55,7 +55,10 @@ class LanguageGenerator(ABC):
 
     @abstractmethod
     def generate_sources(
-        self, file_count: int, deps_from_index: list[ModuleResult]
+        self,
+        file_count: int,
+        module_node: ModuleNode,
+        deps_from_index: list[ModuleResult],
     ) -> Generator[FileResult, None, None]:
         pass
 

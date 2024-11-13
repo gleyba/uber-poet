@@ -90,11 +90,8 @@ class JavaFileGenerator(FileGenerator):
             func_call_out = []
             caller_key = ClassKey(file_spec.file_idx, class_spec.key)
             inner_imports_result = imports_selector.get_inner_imports(caller_key)
-            for (
-                file_idx,
-                class_to_functions,
-            ) in inner_imports_result.file_to_classes.items():
-                for class_idx, funcs in class_to_functions.items():
+            for file_idx, class_imports in inner_imports_result.file_to_classes.items():
+                for class_idx, funcs in class_imports.class_to_functions.items():
                     for func_idx in funcs:
                         func_call_out.append(
                             java_inner_func_call_template.format(
@@ -110,11 +107,8 @@ class JavaFileGenerator(FileGenerator):
                 module_name,
                 inner_imports,
             ) in external_imports_result.module_to_inner_imports.items():
-                for (
-                    file_idx,
-                    class_to_functions,
-                ) in inner_imports.file_to_classes.items():
-                    for class_idx, funcs in class_to_functions.items():
+                for file_idx, class_imports in inner_imports.file_to_classes.items():
+                    for class_idx, funcs in class_imports.class_to_functions.items():
                         external_imports.add(
                             "{}.File{}.MyClass{}".format(
                                 module_name,
@@ -122,14 +116,15 @@ class JavaFileGenerator(FileGenerator):
                                 class_idx,
                             )
                         )
-                        func_call_out.append(
-                            java_external_func_call_template.format(
-                                " " * 12,
-                                class_idx,
-                                func_idx,
-                                ";",
+                        for func_idx in funcs:
+                            func_call_out.append(
+                                java_external_func_call_template.format(
+                                    " " * 12,
+                                    class_idx,
+                                    func_idx,
+                                    ";",
+                                )
                             )
-                        )
 
             out.append(
                 java_class_template.format(
@@ -149,7 +144,7 @@ class JavaFileGenerator(FileGenerator):
     ) -> FileResult:
         external_imports = imports.get_external_imports()
 
-        funcs_out = self.gen_func(3, "7", 4)
+        funcs_out = self.gen_func([seed() for _ in range(3)], "7", 4)
         class_out, external_imports = self.gen_class(file_spec, imports)
         chunks = (
             [
@@ -177,10 +172,9 @@ class JavaFileGenerator(FileGenerator):
         )
 
         return FileResult(
-            "File{}.java".format(file_idx),
+            "File{}.java".format(file_spec.file_idx),
             Language.JAVA,
             "\n".join(chunks),
-            file_spec.funcs,
             file_spec,
         )
 

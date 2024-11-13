@@ -75,48 +75,56 @@ class Language(object):
 class ClassSpec:
     key: int
     func_keys: list[int]
+    typed_func_keys: dict[str, int]
 
 
 class FileSpec(object):
-    def __init__(self, file_idx: int, class_count: int, function_count: int):
+    @staticmethod
+    def new_with_seed(file_idx: int, class_count: int, function_count: int):
+        return FileSpec(
+            file_idx=file_idx,
+            funcs=[seed() for _ in range(function_count)],
+            classes=[
+                ClassSpec(
+                    key=seed(),
+                    func_keys=[seed() for _ in range(function_count)],
+                    typed_func_keys={},
+                )
+                for _ in range(class_count)
+            ],
+        )
+
+    def __init__(self, file_idx: int, funcs: list[int], classes: list[ClassSpec]):
         self.file_idx = file_idx
-        self.funcs = [seed() for _ in range(function_count)]
-        self.classes = [
-            ClassSpec(seed(), [seed() for _ in range(function_count)])
-            for _ in range(class_count)
-        ]
-        self.imports_count = class_count * function_count
+        self.funcs = funcs
+        self.classes = classes
+        self.imports_count = 0
+        for cls in self.classes:
+            self.imports_count += len(cls.func_keys)
 
 
 class FileResult(object):
-    def __init__(self, filename: str, language: Language, text, functions, classes):
+    def __init__(self, filename: str, language: Language, text: str, spec: FileSpec):
         super(FileResult, self).__init__()
         self.filename = filename
         self.language = language
         self.text = text  # string
         self.text_line_count = text.count("\n")
-        self.functions = functions  # list of indexes
-        self.classes = classes  # {class index: {func type: function indexes}}
+        self.spec = spec
 
     def __str__(self):
         return "<text_line_count : {} functions : {} classes : {}>".format(
             self.text_line_count,
-            self.functions,
-            self.classes,
+            self.spec.funcs,
+            self.spec.classes,
         )
 
     def basename(self):
         return self.filename.split(".")[0]
 
     def first_class_and_func(self):
-        if type(self.classes) == dict:
-            class_key = first_key(self.classes)
-            class_index = first_in_dict(self.classes)
-            function_key = first_in_dict(class_index)[0]
-        elif type(self.classes) == FileSpec:
-            class_key = self.classes.classes[0].key
-            function_key = self.classes.classes[0].func_keys[0]
-
+        class_key = self.spec.classes[0].key
+        function_key = self.spec.classes[0].func_keys[0]
         return class_key, function_key
 
 

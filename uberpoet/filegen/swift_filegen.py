@@ -100,8 +100,8 @@ def get_import_func_calls(from_language, import_list, indent=0):
             continue
         to_language = module.language
         for file_result in module.files.values():
-            for class_num, class_funcs in file_result.classes.items():
-                for func_type, func_nums in class_funcs.items():
+            for class_spec in file_result.spec.classes:
+                for func_type, func_nums in class_spec.typed_func_keys.items():
                     for func_num in func_nums:
                         if (
                             func_type == FuncType.SWIFT_ONLY
@@ -112,7 +112,7 @@ def get_import_func_calls(from_language, import_list, indent=0):
                             continue
                         text = get_func_call_template(
                             from_language, to_language, func_type
-                        ).format(class_num, func_num)
+                        ).format(class_spec.key, func_num)
                         indented_text = "\n".join(
                             " " * indent + line for line in text.splitlines()
                         )
@@ -172,7 +172,7 @@ class SwiftFileGenerator(FileGenerator):
 
     def gen_class(self, class_count, func_per_class_count, import_list):
         out = []
-        class_nums = {}
+        class_nums = []
 
         for _ in range(class_count):
             num = seed()
@@ -188,10 +188,16 @@ class SwiftFileGenerator(FileGenerator):
             )
             out.append(swift_class_template.format(num, func_out, func_call_out))
 
-            class_nums[num] = {
-                FuncType.SWIFT_ONLY: swift_only_func_nums,
-                FuncType.OBJC_FRIENDLY: swift_objc_friendly_func_nums,
-            }
+            class_nums.append(
+                ClassSpec(
+                    key=num,
+                    func_keys=swift_only_func_nums + swift_objc_friendly_func_nums,
+                    typed_func_keys={
+                        FuncType.SWIFT_ONLY: swift_only_func_nums,
+                        FuncType.OBJC_FRIENDLY: swift_objc_friendly_func_nums,
+                    },
+                )
+            )
 
         return "\n".join(out), class_nums
 
@@ -216,8 +222,7 @@ class SwiftFileGenerator(FileGenerator):
             filename,
             Language.SWIFT,
             "\n".join(chunks),
-            func_nums,
-            class_nums,
+            FileSpec(-1, func_nums, class_nums),
         )
 
     def gen_main(self, module_result: ModuleResult):

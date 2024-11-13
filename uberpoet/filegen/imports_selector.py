@@ -39,7 +39,7 @@ class InnerKey:
 class InnerImportSelector:
     def __init__(self, inners: list[FileSpec]):
         self.inners = inners
-        self.key = self.InnerKey(0, 0, 0)
+        self.key = InnerKey(0, 0, 0)
         self.imports_count = 0
         for file_spec in inners:
             self.imports_count += file_spec.imports_count
@@ -49,7 +49,7 @@ class InnerImportSelector:
             cur_class = self.inners[self.key.file_idx].classes[self.key.class_idx]
             func_len = len(cur_class.func_keys)
             if self.key.func_idx + count >= func_len:
-                count -= func_len - count
+                count -= func_len - self.key.func_idx
                 self.key.func_idx = 0
                 self.key.class_idx += 1
                 if self.key.class_idx < len(self.inners[self.key.file_idx].classes):
@@ -63,14 +63,15 @@ class InnerImportSelector:
                     return count
             else:
                 self.key.func_idx += count
+                count = 0
         return 0
 
     def cur_key(self) -> InnerKey:
         cur_class = self.inners[self.key.file_idx].classes[self.key.class_idx]
-        return self.InnerKey(
+        return InnerKey(
             self.key.file_idx,
             cur_class.key,
-            cur_class[self.func_idx],
+            cur_class.func_keys[self.key.func_idx],
         )
 
 
@@ -92,7 +93,7 @@ class ExternalImportSelector:
         self.externals = [
             self.ExternalDef(
                 module.name,
-                InnerImportSelector([file.classes for file in module.files.values()]),
+                InnerImportSelector([file.spec for file in module.files.values()]),
             )
             for module in externals
         ]
@@ -115,27 +116,27 @@ class ExternalImportSelector:
         return ExternalKey(cur.name, cur.selector.cur_key())
 
 
-class InnerImportsResult:
-    @dataclass
-    class ClassImportsResult:
-        class_to_functions: dict[int, set[int]]
+@dataclass
+class ClassImportsResult:
+    class_to_functions: dict[int, set[int]]
 
+
+class InnerImportsResult:
     def __init__(self):
-        self.file_to_classes: dict[int, self.ClassImportsResult] = {}
+        self.file_to_classes: dict[int, ClassImportsResult] = {}
         self.count = 0
 
     def add(self, key: InnerKey) -> bool:
         if not key.file_idx in self.file_to_classes:
-            self.file_to_classes[key.file_idx] = self.ClassImportsResult(
+            self.file_to_classes[key.file_idx] = ClassImportsResult(
                 {
-                    key.class_idx,
-                    [key.func_idx],
+                    key.class_idx: {key.func_idx},
                 }
             )
         elif not key.class_idx in self.file_to_classes[key.file_idx].class_to_functions:
-            self.file_to_classes[key.file_idx].class_to_functions[key.class_idx] = set(
+            self.file_to_classes[key.file_idx].class_to_functions[key.class_idx] = {
                 key.func_idx
-            )
+            }
         elif (
             not key.func_idx
             in self.file_to_classes[key.file_idx].class_to_functions[key.class_idx]
@@ -187,21 +188,33 @@ class ImportsSelectorImpl(ImportsSelector):
         super().__init__()
         self.inners_selector = InnerImportSelector(inners)
         self.inners_imports_per_class = min(
-            inners_imports_per_class, self.inners_selector.imports_count / 2
+            inners_imports_per_class,
+            int(self.inners_selector.imports_count / 2),
         )
-        self.inner_imports_step = max(
-            1,
-            int(self.inners_selector.imports_count / self.inners_imports_per_class) - 1,
-        )
+        if self.inners_imports_per_class:
+            self.inner_imports_step = max(
+                1,
+                int(self.inners_selector.imports_count / self.inners_imports_per_class)
+                - 1,
+            )
+        else:
+            self.inner_imports_step = 0
         self.externals_selector = ExternalImportSelector(externals)
         self.external_imports_per_class = min(
-            external_imports_per_class, self.externals_selector.imports_count / 3
+            external_imports_per_class,
+            int(self.externals_selector.imports_count / 3),
         )
-        self.external_imports_step = max(
-            1,
-            int(self.externals_selector.imports_count / self.external_imports_per_class)
-            - 1,
-        )
+        if self.external_imports_per_class:
+            self.external_imports_step = max(
+                1,
+                int(
+                    self.externals_selector.imports_count
+                    / self.external_imports_per_class
+                )
+                - 1,
+            )
+        else:
+            self.external_imports_step = 0
 
     def get_inner_imports(self, caller_key: ClassKey) -> InnerImportsResult:
         result = InnerImportsResult()

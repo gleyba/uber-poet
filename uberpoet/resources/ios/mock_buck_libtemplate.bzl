@@ -19,13 +19,13 @@
 # Check it out at https://github.com/uber/uber-poet
 
 apple_library(
-    name = "{0}",
+    name = "{name}",
     srcs = glob([
         "Sources/**/*.m",
         "Sources/**/*.swift",
     ]),
     headers = glob([
-        "Sources/**/*.h"
+        "Sources/**/*.h",
     ]),
     tests = [],
     visibility = [
@@ -38,6 +38,6 @@ apple_library(
         }},
     }},
     deps = [
-        {deps}
+        {deps},
     ],
 )
