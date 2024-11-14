@@ -64,7 +64,7 @@ class InnerImportSelector:
             else:
                 self.key.func_idx += count
                 count = 0
-        return 0
+        return None
 
     def cur_key(self) -> InnerKey:
         cur_class = self.inners[self.key.file_idx].classes[self.key.class_idx]
@@ -102,10 +102,10 @@ class ExternalImportSelector:
             self.imports_count += external.selector.imports_count
 
     def advance(self, count: int):
-        while count > 0:
+        while count:
             cur = self.externals[self.external_idx]
             count = cur.selector.advance(count, False)
-            if count:
+            if count is not None:
                 self.external_idx += 1
             if self.external_idx < len(self.externals):
                 continue
@@ -218,8 +218,14 @@ class ImportsSelectorImpl(ImportsSelector):
 
     def get_inner_imports(self, caller_key: ClassKey) -> InnerImportsResult:
         result = InnerImportsResult()
+        step_min = max(int(self.inner_imports_step / 2), 1)
+        step_max = max(int(self.inner_imports_step * 1.5), 2)
+        step = self.inner_imports_step
         while result.count < self.inners_imports_per_class:
             self.inners_selector.advance(self.inner_imports_step, True)
+            step += 1
+            if step > step_max:
+                step = step_min
             cur_key = self.inners_selector.cur_key()
             if (
                 caller_key.file_idx == cur_key.file_idx
@@ -232,9 +238,16 @@ class ImportsSelectorImpl(ImportsSelector):
 
     def get_external_imports(self) -> ExternalImportsResult:
         result = ExternalImportsResult()
+        step_min = max(int(self.external_imports_step / 2), 1)
+        step_max = max(int(self.external_imports_step * 1.5), 2)
+        step = self.external_imports_per_class
         while result.count < self.external_imports_per_class:
-            self.externals_selector.advance(self.external_imports_step)
-            result.add(self.externals_selector.cur_key())
+            self.externals_selector.advance(step)
+            step += 1
+            if step > step_max:
+                step = step_min
+            cur_key = self.externals_selector.cur_key()
+            result.add(cur_key)
 
         return result
 

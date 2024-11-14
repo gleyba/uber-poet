@@ -142,8 +142,6 @@ class JavaFileGenerator(FileGenerator):
         file_spec: FileSpec,
         imports: ImportsSelector,
     ) -> FileResult:
-        external_imports = imports.get_external_imports()
-
         funcs_out = self.gen_func([seed() for _ in range(3)], "7", 4)
         class_out, external_imports = self.gen_class(file_spec, imports)
         chunks = (

@@ -90,16 +90,18 @@ class JavaGenerator(LanguageGenerator):
             for file_idx in range(file_count)
         ]
 
+        imports_selector = ImportsSelectorImpl(
+            deepcopy(file_specs),
+            self.inner_imports_count,
+            deepcopy(deps_modules),
+            self.external_imports_count,
+        )
+
         for file_spec in file_specs:
             yield self.java_gen.gen_file(
                 module_node.name,
                 file_spec,
-                ImportsSelectorImpl(
-                    deepcopy(file_specs),
-                    self.inner_imports_count,
-                    deepcopy(deps_modules),
-                    self.external_imports_count,
-                ),
+                imports_selector,
             )
         return
 
